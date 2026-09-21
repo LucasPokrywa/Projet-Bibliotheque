@@ -1,0 +1,42 @@
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Coverage directory
+coverage/
+*.lcov
+
+# Build output
+dist/
+build/
+out/
+.next/
+
+# Environment files (but keep examples)
+.env
+.env.*.local
+!.env.example
+
+# Optional npm cache
+.npm
+
+
+# Misc
+.sass-cache/
+.eslintcache
+*.tsbuildinfo
+
+# IDEs and editors
+.vscode/
+
+# Docker overrides
+docker-compose.override.yml
+

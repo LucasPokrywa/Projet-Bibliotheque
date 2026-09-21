@@ -122,13 +122,17 @@ La promotion d'un compte existant doit être faite explicitement en base.
 
 ## Recherche ISBN avec Python
 
-`POST /livres/isbn` (JWT obligatoire) appelle `python_script/isbn_scrap.py` :
+`POST /livres/isbn` (JWT obligatoire) cherche d’abord dans PostgreSQL. Si aucun
+livre ne correspond, la route appelle `python_script/isbn_scrap.py` :
 
 ```json
 { "isbn": "9782070612758" }
 ```
 
-La réponse 200 est le JSON du programme, par exemple :
+La réponse 200 conserve le même format quelle que soit la source. En base,
+`titre` devient `title` et `auteur` devient un élément du tableau `authors`.
+Les espaces, tirets et la casse des ISBN stockés sont ignorés pour la comparaison.
+Exemple :
 
 ```json
 { "title": "Le Petit Prince", "authors": ["Antoine de Saint-Exupéry"] }

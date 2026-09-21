@@ -1,9 +1,11 @@
+import { DatabaseService } from '../database.service.js';
 import {
   BadGatewayException,
   GatewayTimeoutException,
   HttpException,
   HttpStatus,
   Injectable,
+  Inject,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { execFile } from 'node:child_process';
@@ -22,7 +24,21 @@ const scriptDirectory = fileURLToPath(
 export class IsbnService {
   private running = 0;
 
+  constructor(@Inject(DatabaseService) private readonly db: DatabaseService) {}
+
   async lookup(isbn: string): Promise<IsbnResultDto> {
+    const normalizedIsbn = isbn.replace(/[\s-]/g, '').toUpperCase();
+    const result = await this.db.query<{ titre: string; auteur: string }>(
+      "SELECT titre, auteur FROM livres WHERE upper(regexp_replace(isbn, '[[:space:]-]', '', 'g')) = $1 ORDER BY id LIMIT 1",
+      [normalizedIsbn],
+    );
+    if (result.rows[0]) {
+      return { title: result.rows[0].titre, authors: [result.rows[0].auteur] };
+    }
+    return this.lookupWithPython(normalizedIsbn);
+  }
+
+  private async lookupWithPython(isbn: string): Promise<IsbnResultDto> {
     if (this.running >= 4)
       throw new ServiceUnavailableException('Trop de recherches ISBN en cours');
     this.running++;

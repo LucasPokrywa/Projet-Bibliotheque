@@ -66,9 +66,9 @@ export class LivresController {
   @HttpCode(200)
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({
-    summary: 'Rechercher un livre par ISBN via le script Python',
+    summary: 'Rechercher un livre par ISBN',
     description:
-      'Renvoie le JSON du script, sans enregistrer de livre en base.',
+      'Cherche d’abord en base, puis appelle Python uniquement si le livre est absent. Renvoie title et authors, sans enregistrer de livre en base.',
   })
   @ApiOkResponse({ type: IsbnResultDto })
   @ApiNotFoundResponse({

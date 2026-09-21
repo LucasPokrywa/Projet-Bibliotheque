@@ -35,3 +35,9 @@ Dockerfile
 **/.temp
 **/.DS_Store
 **/Thumbs.db
+
+# Python local environments and caches
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc

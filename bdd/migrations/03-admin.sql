@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE utilisateurs ADD COLUMN IF NOT EXISTS permission SMALLINT
+    NOT NULL DEFAULT 0 CHECK (permission IN (0, 1));
+
+COMMIT;

@@ -6,6 +6,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-bibliotheque}
       POSTGRES_USER: ${POSTGRES_USER:-bibliotheque}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Définissez POSTGRES_PASSWORD dans .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PSEUDO: ${ADMIN_PSEUDO:-}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
@@ -17,10 +20,14 @@ services:
     restart: unless-stopped
 
   api:
+    env_file:
+      - path: ./api/python_script/.env
+        required: false
     build:
       context: ./api
     environment:
       NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET:?Définissez JWT_SECRET dans .env (au moins 32 octets aléatoires)}
       HOST: 0.0.0.0
       PORT: 3000
       PGHOST: bdd

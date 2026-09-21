@@ -22,8 +22,9 @@ out/
 
 # Environment files (but keep examples)
 .env
-.env.*.local
+.env.*
 !.env.example
+!.env.*.example
 
 # Optional npm cache
 .npm
@@ -33,10 +34,15 @@ out/
 .sass-cache/
 .eslintcache
 *.tsbuildinfo
+.cache/
+.nyc_output/
+.tmp/
+.temp/
+.DS_Store
+Thumbs.db
 
 # IDEs and editors
 .vscode/
 
 # Docker overrides
 docker-compose.override.yml
-

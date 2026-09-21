@@ -1,6 +1,37 @@
-node_modules
-npm-debug.log*
-.env
-.env.*
-.git
-coverage
+# Dependencies and generated files
+**/node_modules
+**/dist
+**/build
+**/coverage
+**/.nyc_output
+**/*.tsbuildinfo
+**/.cache
+**/.npm
+
+# Secrets and local configuration
+**/.env
+**/.env.*
+**/.npmrc
+**/.git
+**/.gitignore
+**/.vscode
+**/.idea
+
+# Tests, documentation and development tooling
+test
+**/*.spec.ts
+**/*.test.ts
+vitest.config*.ts
+README*
+.prettierrc
+.oxlintrc.json
+Dockerfile
+.dockerignore
+
+# Logs and temporary files
+**/*.log
+**/logs
+**/.tmp
+**/.temp
+**/.DS_Store
+**/Thumbs.db

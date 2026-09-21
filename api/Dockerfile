@@ -1,15 +1,25 @@
-FROM node:26-alpine3.23
+FROM node:26-alpine3.23 AS build
+
+WORKDIR /api
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+RUN npm run build
+
+FROM node:26-alpine3.23 AS production
 
 WORKDIR /api
 
 ENV NODE_ENV=production
 
 COPY package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
+RUN npm ci --omit=dev && npm cache clean --force
 
-COPY --chown=node:node . .
+COPY --from=build --chown=node:node /api/dist ./dist
 
 USER node
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["node", "dist/main.js"]

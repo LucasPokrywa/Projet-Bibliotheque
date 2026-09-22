@@ -37,6 +37,7 @@ import Navbar from '../components/Navbar.astro';
 
 <script>
 	const apiUrl = 'https://api.bibliotheque.lucaspokrywa.site/v1/livres';
+	const bibliothequeUrl = 'https://api.bibliotheque.lucaspokrywa.site/v1/bibliotheque';
 
 	async function messageErreur(response: Response): Promise<string> {
 		if (response.status === 401) return 'Connectez-vous pour rechercher ou ajouter un livre.';
@@ -178,7 +179,8 @@ import Navbar from '../components/Navbar.astro';
 
 			const livres: unknown = await response.json();
 			if (!Array.isArray(livres) || !livres.every((livre) =>
-				livre && typeof livre.titre === 'string' && typeof livre.auteur === 'string'
+				livre && Number.isSafeInteger(livre.id) && livre.id > 0 &&
+				typeof livre.titre === 'string' && typeof livre.auteur === 'string'
 			)) throw new Error('Réponse invalide');
 
 			if (livres.length === 0) {
@@ -188,7 +190,49 @@ import Navbar from '../components/Navbar.astro';
 
 			liste.replaceChildren(...livres.map((livre) => {
 				const ligne = document.createElement('li');
-				ligne.textContent = `${livre.titre} - ${livre.auteur}`;
+				const titre = document.createElement('span');
+				titre.textContent = `${livre.titre} - ${livre.auteur}`;
+				const bouton = document.createElement('button');
+				bouton.type = 'button';
+				bouton.textContent = 'Ajouter à ma bibliothèque';
+				bouton.setAttribute('aria-label', `Ajouter ${livre.titre} à ma bibliothèque`);
+				const message = document.createElement('span');
+				message.setAttribute('role', 'status');
+				bouton.addEventListener('click', async () => {
+					if (bouton.disabled) return;
+					bouton.disabled = true;
+					bouton.textContent = 'Ajout en cours…';
+					message.textContent = '';
+					let ajoute = false;
+					try {
+						const response = await fetch(bibliothequeUrl, {
+							method: 'POST',
+							credentials: 'include',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ livre_id: livre.id }),
+						});
+						if (response.ok || response.status === 409) {
+							ajoute = true;
+							message.textContent = response.status === 409
+								? 'Ce livre est déjà dans votre bibliothèque.'
+								: 'Livre ajouté à votre bibliothèque.';
+						} else if (response.status === 401) {
+							login.hidden = false;
+							message.textContent = 'Connectez-vous pour ajouter ce livre.';
+						} else if (response.status === 404) {
+							message.textContent = 'Ce livre n’est plus disponible. Actualisez le catalogue.';
+						} else {
+							message.textContent = await messageErreur(response);
+						}
+					} catch {
+						message.textContent = 'Impossible de confirmer l’ajout. Vérifiez votre bibliothèque ou réessayez.';
+					} finally {
+						bouton.disabled = ajoute;
+						bouton.textContent = ajoute ? 'Dans ma bibliothèque' : 'Ajouter à ma bibliothèque';
+						bouton.setAttribute('aria-label', `${bouton.textContent} : ${livre.titre}`);
+					}
+				});
+				ligne.append(titre, bouton, message);
 				return ligne;
 			}));
 			liste.hidden = false;
@@ -235,6 +279,27 @@ import Navbar from '../components/Navbar.astro';
 
 	button:disabled {
 		cursor: wait;
+	}
+
+	#livres-liste :global(li) {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.5rem 1rem;
+		padding: 0.5rem 0;
+	}
+
+	#livres-liste :global(button) {
+		padding: 0.4rem 0.75rem;
+		cursor: pointer;
+	}
+
+	#livres-liste :global(button:disabled) {
+		cursor: default;
+	}
+
+	#livres-liste :global([role="status"]:not(:empty)) {
+		flex-basis: 100%;
 	}
 
 	#livres-liste {

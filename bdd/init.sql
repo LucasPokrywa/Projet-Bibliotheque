@@ -23,6 +23,7 @@ CREATE TABLE utilisateurs (
     pseudo VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     mot_de_passe VARCHAR(255) NOT NULL,
+    permission SMALLINT NOT NULL DEFAULT 0 CHECK (permission IN (0, 1)),
     date_inscription TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -50,3 +51,18 @@ CREATE TABLE bibliotheque (
         REFERENCES livres(id)
         ON DELETE CASCADE
 );
+
+-- Administrateur initial fourni par l'environnement (aucun secret versionné).
+\set admin_email ''
+\set admin_pseudo ''
+\set admin_password_hash ''
+\getenv admin_email ADMIN_EMAIL
+\getenv admin_pseudo ADMIN_PSEUDO
+\getenv admin_password_hash ADMIN_PASSWORD_HASH
+SELECT length(:'admin_email') > 0
+   AND length(:'admin_pseudo') > 0
+   AND length(:'admin_password_hash') > 0 AS seed_admin \gset
+\if :seed_admin
+INSERT INTO utilisateurs (pseudo, email, mot_de_passe, permission)
+VALUES (:'admin_pseudo', lower(trim(:'admin_email')), :'admin_password_hash', 1);
+\endif

@@ -39,12 +39,12 @@ await test('Connexion et révocation par cookie HttpOnly', async () => {
     const denied = await login(undefined, 'incorrect-password');
     assert.equal(denied.status, 401);
     assert.equal(denied.headers.get('set-cookie'), null);
-    const result = await login('https://bibliotheque.lucaspokrywa.site');
+    const result = await login('http://localhost:4321');
     assert.equal(result.status, 200);
     assert.deepEqual(await result.json(), { expires_in: 3600 });
     assert.equal(result.headers.get('cache-control'), 'no-store');
     const setCookie = result.headers.get('set-cookie');
-    for (const attribute of ['HttpOnly', 'Secure', 'SameSite=Lax', 'Path=/v1', 'Max-Age=3600']) assert.ok(setCookie.includes(attribute), attribute);
+    for (const attribute of ['HttpOnly', 'Secure', 'SameSite=None', 'Path=/v1', 'Max-Age=3600']) assert.ok(setCookie.includes(attribute), attribute);
     assert.ok(!setCookie.includes('Domain='));
     const cookie = setCookie.split(';')[0];
     const call = (headers = {}, path = '/v1/livres', method = 'GET') => fetch(`${base}${path}`, { headers, method });
@@ -58,6 +58,8 @@ await test('Connexion et révocation par cookie HttpOnly', async () => {
     assert.equal((await call({ Cookie: cookie, 'Sec-Fetch-Site': 'cross-site' }, '/v1/auth/logout', 'POST')).status, 403);
     const logout = await call({ Cookie: cookie }, '/v1/auth/logout', 'POST');
     assert.equal(logout.status, 204);
+    assert.ok(logout.headers.get('set-cookie').includes('SameSite=None'));
+    assert.ok(logout.headers.get('set-cookie').includes('Secure'));
     assert.match(logout.headers.get('set-cookie'), /bibliotheque_session=; Path=\/v1; Expires=Thu, 01 Jan 1970/);
     assert.equal((await call({ Cookie: cookie })).status, 401);
     const a = (await login()).headers.get('set-cookie').split(';')[0];
@@ -70,6 +72,7 @@ await test('Connexion et révocation par cookie HttpOnly', async () => {
     const local = await login();
     assert.ok(!local.headers.get('set-cookie').includes('Secure'));
     assert.ok(local.headers.get('set-cookie').includes('HttpOnly'));
+    assert.ok(local.headers.get('set-cookie').includes('SameSite=Lax'));
   } finally {
     await app.close();
   }

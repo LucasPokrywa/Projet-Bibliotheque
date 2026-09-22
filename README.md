@@ -25,7 +25,7 @@ Le démarrage local reste `./start.sh`.
 ## Authentification par cookie
 
 `POST /v1/auth/login` renvoie `{ "expires_in": 3600 }` et place le JWT dans
-le cookie `bibliotheque_session` (HttpOnly, SameSite=Lax, chemin `/v1`, durée
+le cookie `bibliotheque_session` (HttpOnly, chemin `/v1`, durée
 une heure, sans Domain). Le JWT n'est plus exposé dans le JSON et les routes
 protégées utilisent ce cookie, sans en-tête Authorization.
 
@@ -46,7 +46,15 @@ le cookie. Swagger utilise automatiquement le cookie après un appel à login.
 Les origines autorisées pour CORS et la protection CSRF sont définies ensemble
 dans `api/src/auth/csrf.guard.ts`.
 
-En production, le cookie porte `Secure` et nécessite HTTPS. Pour tester en HTTP
-local, utiliser `NODE_ENV=development` et accéder au frontend et à l'API avec
-le même nom d'hôte (`localhost` pour les deux). Avec SameSite=Lax, un frontend
-local en HTTP et une API distante en HTTPS ne peuvent pas partager cette session.
+En production ou lorsque l'API reçoit une requête HTTPS, le cookie utilise
+`SameSite=None; Secure`, ce qui permet notamment un frontend local autorisé
+(`http://localhost:4321`) appelant l'API distante en HTTPS. La protection CSRF
+continue à vérifier l'origine des requêtes qui modifient des données.
+
+Pour tester entièrement en HTTP local, utiliser `NODE_ENV=development` : le
+cookie utilise alors `SameSite=Lax` sans `Secure`. Accéder au frontend et à
+l'API avec le même nom d'hôte (`localhost` pour les deux).
+
+Si le navigateur bloque les cookies tiers, `SameSite=None` ne suffit pas :
+servir le frontend et l'API sur le même site (même protocole et même domaine
+enregistrable, sous-domaines possibles), ou utiliser un proxy du frontend vers l'API.

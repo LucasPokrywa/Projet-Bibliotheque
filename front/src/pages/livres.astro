@@ -3,7 +3,244 @@ import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
 ---
 
-
 <Layout>
 	<Navbar />
+	<main class="livres-page">
+		<h1>Livres disponibles</h1>
+		<section aria-labelledby="recherche-titre">
+			<h2 id="recherche-titre">Rechercher et ajouter un livre</h2>
+			<form id="recherche-livre">
+				<label for="recherche-isbn">ISBN</label>
+				<input id="recherche-isbn" name="isbn" type="text" required maxlength="32" placeholder="9782070612758" />
+				<button id="rechercher" type="submit">Rechercher</button>
+			</form>
+			<p id="recherche-status" role="status"></p>
+			<p id="recherche-login" hidden><a href="/login">Se connecter</a></p>
+			<form id="ajout-livre" hidden>
+				<fieldset id="ajout-champs">
+					<legend>Vérifiez les informations du livre</legend>
+					<label for="ajout-isbn">ISBN recherché</label>
+					<input id="ajout-isbn" name="isbn" readonly />
+					<label for="ajout-titre">Titre</label>
+					<input id="ajout-titre" name="titre" required maxlength="255" />
+					<label for="ajout-auteur">Auteur(s)</label>
+					<input id="ajout-auteur" name="auteur" required maxlength="255" />
+					<button type="submit">Ajouter au catalogue</button>
+				</fieldset>
+			</form>
+		</section>
+		<p id="livres-status" role="status">Chargement des livres…</p>
+		<p id="livres-login" hidden><a href="/login">Se connecter</a></p>
+		<ul id="livres-liste" aria-label="Livres disponibles" hidden></ul>
+	</main>
 </Layout>
+
+<script>
+	const apiUrl = 'https://api.bibliotheque.lucaspokrywa.site/v1/livres';
+
+	async function messageErreur(response: Response): Promise<string> {
+		if (response.status === 401) return 'Connectez-vous pour rechercher ou ajouter un livre.';
+		if (response.status === 409) return 'Ce livre est déjà présent dans le catalogue.';
+		if (response.status === 404) return 'Aucun livre trouvé pour cet ISBN.';
+		if (response.status === 429) return 'Trop de requêtes. Patientez avant de réessayer.';
+		const problem = await response.json().catch(() => null);
+		return typeof problem?.detail === 'string'
+			? problem.detail
+			: 'La requête a échoué. Réessayez plus tard.';
+	}
+
+	function initialiserRecherche() {
+		const recherche = document.querySelector<HTMLFormElement>('#recherche-livre');
+		const isbn = document.querySelector<HTMLInputElement>('#recherche-isbn');
+		const bouton = document.querySelector<HTMLButtonElement>('#rechercher');
+		const status = document.querySelector<HTMLParagraphElement>('#recherche-status');
+		const login = document.querySelector<HTMLParagraphElement>('#recherche-login');
+		const ajout = document.querySelector<HTMLFormElement>('#ajout-livre');
+		const champs = document.querySelector<HTMLFieldSetElement>('#ajout-champs');
+		const isbnAjout = document.querySelector<HTMLInputElement>('#ajout-isbn');
+		const titre = document.querySelector<HTMLInputElement>('#ajout-titre');
+		const auteur = document.querySelector<HTMLInputElement>('#ajout-auteur');
+		if (!recherche || !isbn || !bouton || !status || !login || !ajout || !champs || !isbnAjout || !titre || !auteur) return;
+		let enCours = false;
+		let isbnTrouve = '';
+
+		isbn.addEventListener('input', () => {
+			ajout.hidden = true;
+			isbnTrouve = '';
+			status.textContent = '';
+		});
+
+		recherche.addEventListener('submit', async (event) => {
+			event.preventDefault();
+			if (enCours) return;
+			const valeur = isbn.value.replace(/[\s-]/g, '').toUpperCase();
+			ajout.hidden = true;
+			isbnTrouve = '';
+			login.hidden = true;
+			if (!/^(?:[0-9]{13}|[0-9]{9}[0-9X])$/.test(valeur)) {
+				status.textContent = 'Saisissez un ISBN de 10 ou 13 caractères.';
+				return;
+			}
+			enCours = true;
+			bouton.disabled = true;
+			isbn.disabled = true;
+			status.textContent = 'Recherche en cours…';
+			try {
+				const response = await fetch(`${apiUrl}/isbn/${encodeURIComponent(valeur)}`, {
+					credentials: 'include', cache: 'no-store',
+				});
+				if (!response.ok) {
+					login.hidden = response.status !== 401;
+					throw new Error(await messageErreur(response));
+				}
+				const livre = await response.json();
+				if (!livre || !(livre.title === null || typeof livre.title === 'string') ||
+					!Array.isArray(livre.authors) || !livre.authors.every((nom: unknown) => typeof nom === 'string')) {
+					throw new Error('Le résultat de la recherche est invalide.');
+				}
+				isbnTrouve = valeur;
+				isbnAjout.value = valeur;
+				titre.value = livre.title ?? '';
+				auteur.value = livre.authors.join(', ');
+				ajout.hidden = false;
+				status.textContent = 'Vérifiez ou complétez le titre et les auteurs avant l’ajout.';
+			} catch (error) {
+				status.textContent = error instanceof TypeError ? 'Impossible de contacter l’API.'
+					: error instanceof Error ? error.message : 'La recherche a échoué.';
+			} finally {
+				enCours = false;
+				bouton.disabled = false;
+				isbn.disabled = false;
+			}
+		});
+
+		ajout.addEventListener('submit', async (event) => {
+			event.preventDefault();
+			if (enCours || !isbnTrouve) return;
+			const livre = { isbn: isbnTrouve, titre: titre.value.trim(), auteur: auteur.value.trim() };
+			if (!livre.titre || !livre.auteur || livre.titre.length > 255 || livre.auteur.length > 255) {
+				status.textContent = 'Le titre et les auteurs doivent contenir entre 1 et 255 caractères chacun.';
+				return;
+			}
+			enCours = true;
+			champs.disabled = true;
+			bouton.disabled = true;
+			isbn.disabled = true;
+			login.hidden = true;
+			status.textContent = 'Ajout en cours…';
+			try {
+				const response = await fetch(apiUrl, {
+					method: 'POST', credentials: 'include',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(livre),
+				});
+				if (!response.ok) {
+					login.hidden = response.status !== 401;
+					throw new Error(await messageErreur(response));
+				}
+				ajout.hidden = true;
+				isbnTrouve = '';
+				status.textContent = `${livre.titre} - ${livre.auteur} : ajouté au catalogue.`;
+				await chargerLivres();
+			} catch (error) {
+				status.textContent = error instanceof TypeError ? 'Impossible de confirmer l’ajout. Vérifiez le catalogue avant de réessayer.'
+					: error instanceof Error ? error.message : 'L’ajout a échoué.';
+			} finally {
+				enCours = false;
+				champs.disabled = false;
+				bouton.disabled = false;
+				isbn.disabled = false;
+			}
+		});
+	}
+
+	async function chargerLivres() {
+		const status = document.querySelector<HTMLParagraphElement>('#livres-status');
+		const login = document.querySelector<HTMLParagraphElement>('#livres-login');
+		const liste = document.querySelector<HTMLUListElement>('#livres-liste');
+		if (!status || !login || !liste) return;
+		liste.replaceChildren();
+		liste.hidden = true;
+		login.hidden = true;
+		status.textContent = 'Chargement des livres…';
+
+		try {
+			const response = await fetch(apiUrl, {
+				credentials: 'include',
+				cache: 'no-store',
+			});
+			if (response.status === 401) {
+				status.textContent = 'Connectez-vous pour consulter les livres disponibles.';
+				login.hidden = false;
+				return;
+			}
+			if (!response.ok) throw new Error('Chargement impossible');
+
+			const livres: unknown = await response.json();
+			if (!Array.isArray(livres) || !livres.every((livre) =>
+				livre && typeof livre.titre === 'string' && typeof livre.auteur === 'string'
+			)) throw new Error('Réponse invalide');
+
+			if (livres.length === 0) {
+				status.textContent = 'Aucun livre disponible pour le moment.';
+				return;
+			}
+
+			liste.replaceChildren(...livres.map((livre) => {
+				const ligne = document.createElement('li');
+				ligne.textContent = `${livre.titre} - ${livre.auteur}`;
+				return ligne;
+			}));
+			liste.hidden = false;
+			status.textContent = '';
+		} catch {
+			status.textContent = 'Impossible de charger les livres. Réessayez en actualisant la page.';
+		}
+	}
+
+	initialiserRecherche();
+	void chargerLivres();
+</script>
+
+<style>
+	.livres-page {
+		max-width: 900px;
+		margin: 0 auto;
+		padding: 2rem;
+	}
+
+	section {
+		margin-bottom: 2rem;
+	}
+
+	form, fieldset {
+		max-width: 480px;
+	}
+
+	label, input, button {
+		display: block;
+		margin-top: 0.75rem;
+	}
+
+	input {
+		box-sizing: border-box;
+		width: 100%;
+		padding: 0.6rem;
+	}
+
+	button {
+		padding: 0.6rem 1rem;
+		cursor: pointer;
+	}
+
+	button:disabled {
+		cursor: wait;
+	}
+
+	#livres-liste {
+		list-style: none;
+		padding: 0;
+		line-height: 1.8;
+		overflow-wrap: anywhere;
+	}
+</style>

@@ -17,7 +17,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY_ACCESS }}
           script: |
-            cd /chemin/vers/Projet-Bibliotheque
+            cd ${{ vars.VPS_PROJECT_PATH}}
             git fetch origin main
             git reset --hard origin/main
             ./start.sh --production

@@ -32,6 +32,22 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     return this.pool.query<T>(sql, values);
   }
 
+  async checkHealth(): Promise<void> {
+    // L'acquisition est déjà limitée à 5 s par connectionTimeoutMillis.
+    const client = await this.pool.connect();
+    let failed = false;
+    try {
+      const healthQuery = { text: 'SELECT 1', query_timeout: 2000 };
+      await client.query(healthQuery);
+    } catch (error) {
+      failed = true;
+      throw error;
+    } finally {
+      // Détruire une connexion défaillante, notamment après un délai dépassé.
+      client.release(failed);
+    }
+  }
+
   async trouverLivre(id: number): Promise<Livre | null> {
     const result = await this.pool.query<Livre>(
       'SELECT id, titre, auteur, isbn FROM livres WHERE id = $1',

@@ -193,3 +193,24 @@ ne sont plus exposées. Les contrôleurs sont regroupés dans `api/src/v1/` ;
 les services et DTO restent dans leurs dossiers métier.
 Swagger reste disponible sur `/docs` et son export sur `/docs-json`, avec les
 URL `/v1` dans la spécification.
+
+## Contrôle de santé
+
+`GET /v1/health` est public, sans JWT, et exempté de la limitation des requêtes.
+Il vérifie le pool PostgreSQL utilisé par l’API et exécute `SELECT 1` :
+
+```json
+{ "status": "ok", "database": "up" }
+```
+
+La réponse vaut 200 si PostgreSQL répond, sinon 503 au format Problem Details,
+sans détail technique ni identifiant de connexion. L’acquisition d’une connexion
+est limitée à 5 secondes et la requête à 2 secondes. Les réponses ne sont pas mises
+en cache. Ce contrôle ne vérifie pas le schéma SQL ni les services externes ISBN.
+
+Compose appelle cette route toutes les 30 secondes (délai HTTP : 8 secondes,
+délai Docker : 10 secondes), avec 20 secondes de démarrage et 3 échecs consécutifs
+avant de déclarer le conteneur `unhealthy`. `./start.sh`, qui utilise `--wait`,
+attend désormais que l’API soit saine. Voir l’état avec `docker compose ps`.
+Le statut `unhealthy` seul ne redémarre pas automatiquement le conteneur :
+`restart: unless-stopped` agit lorsque le processus s’arrête.

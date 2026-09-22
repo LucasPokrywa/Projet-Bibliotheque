@@ -1,0 +1,12 @@
+[Unit]
+Description=Test isole de restauration Bibliotheque
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/bibliotheque
+ExecStart=/opt/bibliotheque/scripts/verify-backup.sh
+UMask=0077
+TimeoutStartSec=4h

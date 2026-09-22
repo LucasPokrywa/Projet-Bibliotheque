@@ -11,7 +11,10 @@ import { setupSwagger } from '../dist/swagger.js';
 await test('Erreurs HTTP standardisées RFC 9457', async (t) => {
   const module = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(DatabaseService)
-    .useValue({ query: async () => ({ rows: [] }) })
+    .useValue({
+      query: async () => ({ rows: [] }),
+      checkHealth: async () => {},
+    })
     .overrideProvider(AuthService)
     .useValue({ authenticate: async () => ({ userId: 1, sessionId: 'test' }) })
     .overrideProvider(IsbnService)
@@ -60,6 +63,31 @@ await test('Erreurs HTTP standardisées RFC 9457', async (t) => {
       assert.equal(result.data.message, undefined);
       assert.equal(result.data.error, undefined);
     }
+    await t.test(
+      'santé publique, panne PostgreSQL et récupération',
+      async () => {
+        const healthy = await call('/v1/health', { auth: false });
+        assert.equal(healthy.response.status, 200);
+        assert.equal(healthy.response.headers.get('cache-control'), 'no-store');
+        assert.deepEqual(healthy.data, { status: 'ok', database: 'up' });
+        db.checkHealth = async () => {
+          throw new Error('password=secret SQL connection failed');
+        };
+        const failed = await call('/v1/health', { auth: false });
+        check(failed, 503, '/v1/health');
+        assert.equal(
+          failed.data.detail,
+          'La connexion à PostgreSQL est indisponible.',
+        );
+        assert.ok(!JSON.stringify(failed.data).includes('secret'));
+        db.checkHealth = async () => {};
+        assert.equal(
+          (await call('/v1/health', { auth: false })).response.status,
+          200,
+        );
+        assert.ok(!document.paths['/v1/health'].get.security?.length);
+      },
+    );
     await t.test('les routes sont uniquement exposées sous /v1', async () => {
       assert.ok(Object.keys(document.paths).length > 0);
       assert.ok(

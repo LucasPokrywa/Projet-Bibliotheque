@@ -13,11 +13,17 @@ if ! docker compose version >/dev/null 2>&1; then
     exit 1
 fi
 
-docker compose config --quiet
+compose=(docker compose)
+if [[ "${1:-}" == --production ]]; then
+    compose+=(-f docker-compose.yml -f compose.prod.yml)
+    shift
+fi
+
+"${compose[@]}" config --quiet
 
 if [[ ! -f api/package.json ]]; then
     echo "Erreur : api/package.json est absent. Ajoutez l'API avec un script npm start avant de démarrer." >&2
     exit 1
 fi
 
-exec docker compose up --build --detach --wait "$@"
+exec "${compose[@]}" up --build --detach --wait "$@"

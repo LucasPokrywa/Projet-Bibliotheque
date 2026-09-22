@@ -1,0 +1,12 @@
+[Unit]
+Description=Sauvegarde PostgreSQL Bibliotheque vers Restic
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/bibliotheque
+ExecStart=/opt/bibliotheque/scripts/backup.sh scheduled
+UMask=0077
+TimeoutStartSec=2h

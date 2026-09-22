@@ -3,10 +3,12 @@ import type { CookieOptions, Request } from 'express';
 export const SESSION_COOKIE = 'bibliotheque_session';
 
 export function sessionCookieOptions(request: Request): CookieOptions {
+  const secure = request.secure || process.env.NODE_ENV === 'production';
   return {
     httpOnly: true,
-    secure: request.secure || process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure,
+    // Les appels depuis un frontend sur un autre site exigent None + Secure.
+    sameSite: secure ? 'none' : 'lax',
     path: '/v1',
   };
 }

@@ -8,7 +8,9 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   configureProxy(app);
   app.enableShutdownHooks();
-  setupSwagger(app);
+  if (process.env.NODE_ENV !== 'production') {
+    setupSwagger(app);
+  }
   await app.listen(process.env.PORT ?? 3000);
 }
 await bootstrap();

@@ -71,7 +71,6 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       instance: request.originalUrl.split('?')[0],
       ...(errors?.length ? { errors } : {}),
     };
-    if (status === 401) response.setHeader('WWW-Authenticate', 'Bearer');
     response.status(status).type('application/problem+json').json(problem);
   }
 }

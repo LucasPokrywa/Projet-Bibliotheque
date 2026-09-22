@@ -29,11 +29,12 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
         method,
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(token ? { Cookie: `bibliotheque_session=${token}` } : {}),
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
       return {
+        token: response.headers.getSetCookie()[0]?.split(";")[0].split("=")[1],
         status: response.status,
         body: response.status === 204 ? null : await response.json(),
       };
@@ -133,13 +134,13 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
         mot_de_passe: password,
       });
       assert.equal(a.status, 200);
-      tokenA = a.body.access_token;
+      tokenA = a.token;
       tokenB = (
         await call('/v1/auth/login', 'POST', {
           email: emails[1],
           mot_de_passe: password,
         })
-      ).body.access_token;
+      ).token;
       sessionId = JSON.parse(
         Buffer.from(tokenA.split('.')[1], 'base64url').toString(),
       ).sid;
@@ -290,7 +291,7 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
           email: emails[0],
           mot_de_passe: password,
         })
-      ).body.access_token;
+      ).token;
       assert.equal(
         (await call('/v1/auth/logout', 'POST', undefined, tokenA)).status,
         204,
@@ -308,7 +309,7 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
           email: emails[0],
           mot_de_passe: password,
         })
-      ).body.access_token;
+      ).token;
       assert.equal(
         (await call('/v1/auth/logout-all', 'POST', undefined, second)).status,
         204,

@@ -39,7 +39,7 @@ await test('Erreurs HTTP standardisées RFC 9457', async (t) => {
         method,
         headers: {
           'Content-Type': 'application/json',
-          ...(auth ? { Authorization: 'Bearer test' } : {}),
+          ...(auth ? { Cookie: 'bibliotheque_session=test' } : {}),
         },
         ...(body === undefined
           ? {}
@@ -112,12 +112,12 @@ await test('Erreurs HTTP standardisées RFC 9457', async (t) => {
       assert.ok(!spec.paths['/livres']);
     });
     await t.test(
-      '401 avec challenge Bearer et sans paramètres de recherche',
+      '401 sans paramètres de recherche',
       async () => {
         const result = await call('/v1/users/me?token=secret', { auth: false });
         check(result, 401, '/v1/users/me');
-        assert.equal(result.response.headers.get('www-authenticate'), 'Bearer');
-        assert.equal(result.data.detail, 'Jeton Bearer requis');
+        assert.equal(result.response.headers.get('www-authenticate'), null);
+        assert.equal(result.data.detail, 'Cookie de session requis');
         assert.ok(!JSON.stringify(result.data).includes('secret'));
       },
     );

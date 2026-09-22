@@ -1,7 +1,7 @@
 import {
   ApiTags,
   ApiOperation,
-  ApiBearerAuth,
+  ApiCookieAuth,
   ApiOkResponse,
   ApiBadRequestResponse,
   ApiUnauthorizedResponse,
@@ -17,7 +17,7 @@ import { UsersService } from '../users/users.service.js';
 @ApiTags('Utilisateurs')
 @ApiBadRequestResponse({ description: 'Données ou paramètres invalides' })
 @ApiTooManyRequestsResponse({ description: 'Trop de requêtes' })
-@ApiBearerAuth()
+@ApiCookieAuth()
 @ApiUnauthorizedResponse({ description: 'Jeton absent, invalide ou expiré' })
 @Controller('v1/users')
 @UseGuards(AuthGuard)

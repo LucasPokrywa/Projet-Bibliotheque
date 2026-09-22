@@ -1,7 +1,7 @@
 import {
   ApiTags,
   ApiOperation,
-  ApiBearerAuth,
+  ApiCookieAuth,
   ApiOkResponse,
   ApiCreatedResponse,
   ApiNoContentResponse,
@@ -36,7 +36,7 @@ import { BibliothequeService } from '../bibliotheque/bibliotheque.service.js';
 @ApiTags('Bibliothèque')
 @ApiBadRequestResponse({ description: 'Données ou paramètres invalides' })
 @ApiTooManyRequestsResponse({ description: 'Trop de requêtes' })
-@ApiBearerAuth()
+@ApiCookieAuth()
 @ApiUnauthorizedResponse({ description: 'Jeton absent, invalide ou expiré' })
 @Controller('v1/bibliotheque')
 @UseGuards(AuthGuard)

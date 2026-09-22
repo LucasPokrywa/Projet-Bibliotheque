@@ -60,7 +60,7 @@ export class AuthService {
       'INSERT INTO sessions (id, utilisateur_id, expires_at) VALUES ($1, $2, $3)',
       [sessionId, user.id, new Date(expires * 1000)],
     );
-    return { access_token: token, token_type: 'Bearer', expires_in: TTL };
+    return { token, expires_in: TTL };
   }
 
   async authenticate(token: string): Promise<SessionIdentity> {

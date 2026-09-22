@@ -13,14 +13,7 @@ export class UserResponseDto {
   date_inscription: string;
 }
 
-export class TokenResponseDto {
-  @ApiProperty({
-    type: String,
-    description: 'JWT à coller dans Authorize, sans le préfixe Bearer.',
-  })
-  access_token: string;
-  @ApiProperty({ type: String, example: 'Bearer' })
-  token_type: string;
+export class SessionResponseDto {
   @ApiProperty({ type: Number, example: 3600 })
   expires_in: number;
 }

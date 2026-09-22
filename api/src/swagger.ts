@@ -6,10 +6,10 @@ export function setupSwagger(app: INestApplication) {
   const config = new DocumentBuilder()
     .setTitle('API Bibliothèque')
     .setDescription(
-      'Inscrivez-vous via /v1/auth/register, connectez-vous via /v1/auth/login, puis collez access_token dans Authorize pour tester les routes protégées. Les requêtes modifient réellement la base de données.',
+      'Inscrivez-vous via /v1/auth/register, connectez-vous via /v1/auth/login, le navigateur utilisera ensuite automatiquement le cookie HttpOnly pour les routes protégées. Les requêtes modifient réellement la base de données.',
     )
     .setVersion('1.0')
-    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
+    .addCookieAuth('bibliotheque_session')
     .build();
   const document = SwaggerModule.createDocument(app, config, {
     extraModels: [ProblemDetailsDto],
@@ -45,7 +45,7 @@ export function setupSwagger(app: INestApplication) {
   }
   SwaggerModule.setup('docs', app, document, {
     jsonDocumentUrl: 'docs-json',
-    swaggerOptions: { persistAuthorization: false, tagsSorter: 'alpha' },
+    swaggerOptions: { persistAuthorization: false, withCredentials: true, tagsSorter: 'alpha' },
   });
   return document;
 }

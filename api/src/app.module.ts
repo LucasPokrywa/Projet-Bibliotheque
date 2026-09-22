@@ -1,3 +1,4 @@
+import { HealthController } from './v1/health.controller.js';
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
 import { IsbnService } from './livres/isbn.service.js';
 import { Module } from '@nestjs/common';
@@ -20,6 +21,7 @@ import { BibliothequeService } from './bibliotheque/bibliotheque.service.js';
 @Module({
   imports: [ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }])],
   controllers: [
+    HealthController,
     AppController,
     AuthController,
     UsersController,

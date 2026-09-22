@@ -1,3 +1,4 @@
+import { CsrfGuard } from './auth/csrf.guard.js';
 import { HealthController } from './v1/health.controller.js';
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
 import { IsbnService } from './livres/isbn.service.js';
@@ -38,6 +39,7 @@ import { BibliothequeService } from './bibliotheque/bibliotheque.service.js';
     IsbnService,
     BibliothequeService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: CsrfGuard },
     { provide: APP_FILTER, useClass: ProblemDetailsFilter },
     {
       provide: APP_PIPE,

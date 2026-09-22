@@ -10,7 +10,7 @@ import {
   ApiTags,
   ApiParam,
   ApiOperation,
-  ApiBearerAuth,
+  ApiCookieAuth,
   ApiOkResponse,
   ApiCreatedResponse,
   ApiBadRequestResponse,
@@ -37,7 +37,7 @@ import { LivresService } from '../livres/livres.service.js';
 @ApiTags('Livres')
 @ApiBadRequestResponse({ description: 'Données ou paramètres invalides' })
 @ApiTooManyRequestsResponse({ description: 'Trop de requêtes' })
-@ApiBearerAuth()
+@ApiCookieAuth()
 @ApiUnauthorizedResponse({ description: 'Jeton absent, invalide ou expiré' })
 @Controller('v1/livres')
 @UseGuards(AuthGuard)

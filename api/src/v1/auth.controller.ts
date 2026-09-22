@@ -1,7 +1,12 @@
+import type { Request, Response } from 'express';
+import {
+  SESSION_COOKIE,
+  sessionCookieOptions,
+} from '../auth/session-cookie.js';
 import {
   ApiTags,
   ApiOperation,
-  ApiBearerAuth,
+  ApiCookieAuth,
   ApiOkResponse,
   ApiCreatedResponse,
   ApiNoContentResponse,
@@ -10,7 +15,7 @@ import {
   ApiConflictResponse,
   ApiTooManyRequestsResponse,
 } from '@nestjs/swagger';
-import { UserResponseDto, TokenResponseDto } from '../responses.dto.js';
+import { UserResponseDto, SessionResponseDto } from '../responses.dto.js';
 import {
   Body,
   Controller,
@@ -18,6 +23,8 @@ import {
   HttpCode,
   Inject,
   Post,
+  Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
@@ -43,35 +50,54 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Se connecter et créer une session d’une heure' })
-  @ApiOkResponse({ type: TokenResponseDto })
+  @ApiOkResponse({ type: SessionResponseDto })
   @ApiUnauthorizedResponse({ description: 'Identifiants invalides' })
   @Post('login')
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
-  login(@Body() dto: LoginDto) {
-    return this.auth.login(dto);
+  async login(
+    @Body() dto: LoginDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const session = await this.auth.login(dto);
+    response.cookie(SESSION_COOKIE, session.token, {
+      ...sessionCookieOptions(request),
+      maxAge: session.expires_in * 1000,
+    });
+    return { expires_in: session.expires_in };
   }
 
   @ApiOperation({ summary: 'Révoquer la session courante' })
-  @ApiBearerAuth()
+  @ApiCookieAuth()
   @ApiUnauthorizedResponse({ description: 'Session invalide ou expirée' })
   @ApiNoContentResponse({ description: 'Session révoquée' })
   @Post('logout')
   @HttpCode(204)
   @UseGuards(AuthGuard)
-  logout(@CurrentSession() identity: SessionIdentity) {
-    return this.auth.logout(identity);
+  async logout(
+    @CurrentSession() identity: SessionIdentity,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    await this.auth.logout(identity);
+    response.clearCookie(SESSION_COOKIE, sessionCookieOptions(request));
   }
 
   @ApiOperation({ summary: 'Révoquer toutes ses sessions' })
-  @ApiBearerAuth()
+  @ApiCookieAuth()
   @ApiUnauthorizedResponse({ description: 'Session invalide ou expirée' })
   @ApiNoContentResponse({ description: 'Sessions révoquées' })
   @Post('logout-all')
   @HttpCode(204)
   @UseGuards(AuthGuard)
-  logoutAll(@CurrentSession() identity: SessionIdentity) {
-    return this.auth.logoutAll(identity.userId);
+  async logoutAll(
+    @CurrentSession() identity: SessionIdentity,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    await this.auth.logoutAll(identity.userId);
+    response.clearCookie(SESSION_COOKIE, sessionCookieOptions(request));
   }
 }

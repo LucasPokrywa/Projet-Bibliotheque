@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import type { CanActivate, ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
+import { readSessionCookie } from './session-cookie.js';
 import { AuthService } from './auth.service.js';
 import type { SessionIdentity } from './auth.service.js';
 
@@ -17,11 +18,9 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const match = /^Bearer ([^\s]+)$/i.exec(
-      request.headers.authorization ?? '',
-    );
-    if (!match) throw new UnauthorizedException('Jeton Bearer requis');
-    request.identity = await this.auth.authenticate(match[1]);
+    const token = readSessionCookie(request.headers.cookie);
+    if (!token) throw new UnauthorizedException('Cookie de session requis');
+    request.identity = await this.auth.authenticate(token);
     return true;
   }
 }

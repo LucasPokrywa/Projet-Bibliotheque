@@ -11,20 +11,20 @@ import Navbar from '../components/Navbar.astro';
 		<form id="login-form" class="login-form">
 			<h1>Connexion</h1>
 
-			<label for="mail">Mail</label>
+			<label for="email">email</label>
 			<input
 				type="email"
-				id="mail"
-				name="mail"
-				placeholder="Votre mail"
+				id="email"
+				name="email"
+				placeholder="Votre email"
 				required
 			/>
 
-			<label for="password">Mot de passe</label>
+			<label for="mot_de_passe">Mot de passe</label>
 			<input
 				type="password"
-				id="password"
-				name="password"
+				id="mot_de_passe"
+				name="mot_de_passe"
 				placeholder="Votre mot de passe"
 				required
 			/>
@@ -44,10 +44,10 @@ import Navbar from '../components/Navbar.astro';
 	form?.addEventListener('submit', async (event) => {
 		event.preventDefault();
 
-		const mail = document.querySelector<HTMLInputElement>('#mail')?.value;
-		const password = document.querySelector<HTMLInputElement>('#password')?.value;
+		const email = document.querySelector<HTMLInputElement>('#email')?.value;
+		const mot_de_passe = document.querySelector<HTMLInputElement>('#mot_de_passe')?.value;
 
-		if (!mail || !password) {
+		if (!email || !mot_de_passe) {
 			return;
 		}
 
@@ -61,8 +61,8 @@ import Navbar from '../components/Navbar.astro';
 					},
 					credentials: 'include',
 					body: JSON.stringify({
-						mail,
-						password
+						email,
+						mot_de_passe
 					})
 				}
 			);

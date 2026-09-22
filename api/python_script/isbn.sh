@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python3 code.py "$1"
+python3 isbn_scrap.py "$1"

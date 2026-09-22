@@ -92,6 +92,7 @@ et l'administration des utilisateurs ne sont pas exposées.
 npm run build
 npm test
 npm run test:e2e
+npm run test:errors
 npm run lint
 ```
 
@@ -140,7 +141,7 @@ Exemple :
 
 La route ne crée pas de livre en base. ISBN-10 et ISBN-13 sont acceptés, avec
 normalisation des espaces et tirets. Un ISBN invalide donne 400, un livre non
-trouvé 404 (corps `{"error":"..."}` du programme), une erreur du script 502,
+trouvé 404 (message du programme dans `detail`), une erreur du script 502,
 un délai supérieur à 25 secondes 504, et trop de recherches simultanées 503.
 La route accepte 10 requêtes/minute/IP, avec au plus 4 scripts simultanés par instance.
 
@@ -151,3 +152,30 @@ extérieur à `python_script`, puis définir `PYTHON_BIN` vers son interpréteur
 nécessaire. Le dossier `python_script` est utilisé sans modification.
 
 Reconstruire l'image avec `./start.sh` après cette modification.
+
+## Format commun des erreurs (RFC 9457)
+
+Toutes les erreurs HTTP traitées par NestJS utilisent `Content-Type:
+application/problem+json`, avec le statut HTTP correspondant :
+
+```json
+{
+  "type": "about:blank",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "Livre introuvable",
+  "instance": "/livres/12"
+}
+```
+
+`title` est le libellé HTTP stable ; `detail` explique cette erreur particulière.
+`instance` identifie le chemin de la requête, sans ses paramètres de recherche.
+Les erreurs de validation (400) comportent aussi `errors`, un tableau des messages
+par contrainte. Les erreurs internes (500) ont un message générique, sans SQL ni
+trace technique. Les réponses 401 incluent `WWW-Authenticate: Bearer` et les
+limites de débit conservent leurs en-têtes, notamment `Retry-After`.
+
+Ce format remplace les anciennes réponses `{statusCode, message, error}` ainsi
+que `{"error":"..."}` pour un ISBN introuvable. Les réponses de succès sont
+inchangées. Swagger décrit le schéma `ProblemDetailsDto` pour les erreurs.
+Les erreurs produites par un proxy devant NestJS ne sont pas concernées.

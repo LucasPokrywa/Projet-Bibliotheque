@@ -1,9 +1,10 @@
+import { ProblemDetailsFilter } from './common/problem-details.filter.js';
 import { IsbnService } from './livres/isbn.service.js';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { DatabaseService } from './database.service.js';
-import { APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthController } from './auth/auth.controller.js';
@@ -35,6 +36,7 @@ import { BibliothequeService } from './bibliotheque/bibliotheque.service.js';
     IsbnService,
     BibliothequeService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_FILTER, useClass: ProblemDetailsFilter },
     {
       provide: APP_PIPE,
       useFactory: () =>

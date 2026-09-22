@@ -73,7 +73,6 @@ export class LivresController {
   @ApiOkResponse({ type: IsbnResultDto })
   @ApiNotFoundResponse({
     description: 'Aucun livre trouvé par le script',
-    schema: { type: 'object', properties: { error: { type: 'string' } } },
   })
   @ApiBadGatewayResponse({
     description: 'Erreur du programme Python ou de sa réponse',

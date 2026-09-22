@@ -3,12 +3,12 @@ import {
   ApiBadGatewayResponse,
   ApiServiceUnavailableResponse,
 } from '@nestjs/swagger';
-import { HttpCode } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { IsbnDto, IsbnResultDto } from '../livres/isbn.dto.js';
 import { IsbnService } from '../livres/isbn.service.js';
 import {
   ApiTags,
+  ApiParam,
   ApiOperation,
   ApiBearerAuth,
   ApiOkResponse,
@@ -62,8 +62,13 @@ export class LivresController {
     return this.livres.findById(id);
   }
 
-  @Post('isbn')
-  @HttpCode(200)
+  @Get('isbn/:isbn')
+  @ApiParam({
+    name: 'isbn',
+    type: String,
+    example: '9782070612758',
+    description: 'ISBN-10 ou ISBN-13 valide, espaces et tirets acceptés.',
+  })
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({
     summary: 'Rechercher un livre par ISBN',
@@ -83,7 +88,7 @@ export class LivresController {
   @ApiServiceUnavailableResponse({
     description: 'Trop de recherches simultanées',
   })
-  lookupIsbn(@Body() dto: IsbnDto) {
+  lookupIsbn(@Param() dto: IsbnDto) {
     return this.isbn.lookup(dto.isbn);
   }
 

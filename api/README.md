@@ -123,12 +123,16 @@ La promotion d'un compte existant doit être faite explicitement en base.
 
 ## Recherche ISBN avec Python
 
-`POST /v1/livres/isbn` (JWT obligatoire) cherche d’abord dans PostgreSQL. Si aucun
+`GET /v1/livres/isbn/:isbn` (JWT obligatoire) cherche d’abord dans PostgreSQL. Si aucun
 livre ne correspond, la route appelle `python_script/isbn_scrap.py` :
 
-```json
-{ "isbn": "9782070612758" }
+```http
+GET /v1/livres/isbn/9782070612758
+Authorization: Bearer <access_token>
 ```
+
+L’ISBN est transmis dans l’URL, sans corps JSON. L’ancienne route
+`POST /v1/livres/isbn` n’est plus exposée.
 
 La réponse 200 conserve le même format quelle que soit la source. En base,
 `titre` devient `title` et `auteur` devient un élément du tableau `authors`.

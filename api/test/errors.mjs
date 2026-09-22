@@ -93,29 +93,70 @@ await test('Erreurs HTTP standardisées RFC 9457', async (t) => {
         assert.ok(!JSON.stringify(result.data).includes('secret'));
       },
     );
+    await t.test(
+      'recherche ISBN en GET avec paramètre et sans corps',
+      async () => {
+        const original = lookup.lookup.bind(lookup);
+        const received = [];
+        lookup.lookup = async (isbn) => {
+          received.push(isbn);
+          return { title: 'Livre trouvé', authors: ['Auteur'] };
+        };
+        try {
+          check(
+            await call('/v1/livres/isbn/9782070612758', { auth: false }),
+            401,
+            '/v1/livres/isbn/9782070612758',
+          );
+          const result = await call('/v1/livres/isbn/978-2-07-061275-8');
+          assert.equal(result.response.status, 200);
+          assert.deepEqual(result.data, {
+            title: 'Livre trouvé',
+            authors: ['Auteur'],
+          });
+          assert.deepEqual(received, ['9782070612758']);
+          check(
+            await call('/v1/livres/isbn', {
+              method: 'POST',
+              body: { isbn: '9782070612758' },
+            }),
+            404,
+            '/v1/livres/isbn',
+          );
+          const operation = document.paths['/v1/livres/isbn/{isbn}'].get;
+          assert.ok(operation);
+          assert.equal(operation.requestBody, undefined);
+          assert.ok(
+            operation.parameters.some(
+              (p) => p.name === 'isbn' && p.in === 'path' && p.required,
+            ),
+          );
+          assert.equal(document.paths['/v1/livres/isbn'], undefined);
+        } finally {
+          lookup.lookup = original;
+        }
+      },
+    );
     await t.test('400 validation avec la liste des contraintes', async () => {
-      const result = await call('/v1/livres/isbn', {
-        method: 'POST',
-        body: { isbn: 'invalide' },
-      });
-      check(result, 400, '/v1/livres/isbn');
+      const result = await call('/v1/livres/isbn/invalide');
+      check(result, 400, '/v1/livres/isbn/invalide');
       assert.ok(result.data.errors.length);
       assert.equal(result.data.detail, 'Les données envoyées sont invalides.');
     });
     await t.test('400 pour un corps JSON mal formé', async () => {
-      const result = await call('/v1/livres/isbn', {
+      const result = await call('/v1/livres', {
         method: 'POST',
         body: '{broken',
         raw: true,
       });
-      check(result, 400, '/v1/livres/isbn');
+      check(result, 400, '/v1/livres');
     });
     await t.test('413 pour un corps trop volumineux', async () => {
-      const result = await call('/v1/livres/isbn', {
+      const result = await call('/v1/livres', {
         method: 'POST',
         body: { isbn: 'x'.repeat(110000) },
       });
-      check(result, 413, '/v1/livres/isbn');
+      check(result, 413, '/v1/livres');
     });
     await t.test('404 pour une route inexistante', async () => {
       check(await call('/route-inconnue'), 404, '/route-inconnue');
@@ -126,11 +167,8 @@ await test('Erreurs HTTP standardisées RFC 9457', async (t) => {
       assert.equal(result.data.detail, 'Livre introuvable');
     });
     await t.test('404 Python converti en Problem Details', async () => {
-      const result = await call('/v1/livres/isbn', {
-        method: 'POST',
-        body: { isbn: '9782070612758' },
-      });
-      check(result, 404, '/v1/livres/isbn');
+      const result = await call('/v1/livres/isbn/9782070612758');
+      check(result, 404, '/v1/livres/isbn/9782070612758');
       assert.equal(result.data.detail, 'Aucun livre trouvé');
     });
     await t.test(
@@ -140,11 +178,8 @@ await test('Erreurs HTTP standardisées RFC 9457', async (t) => {
           lookup.lookup = async () => {
             throw new HttpException('Message public', status);
           };
-          const result = await call('/v1/livres/isbn', {
-            method: 'POST',
-            body: { isbn: '9782070612758' },
-          });
-          check(result, status, '/v1/livres/isbn');
+          const result = await call('/v1/livres/isbn/9782070612758');
+          check(result, status, '/v1/livres/isbn/9782070612758');
           assert.equal(result.data.detail, 'Message public');
         }
       },
@@ -173,13 +208,10 @@ await test('Erreurs HTTP standardisées RFC 9457', async (t) => {
       };
       let result;
       for (let i = 0; i < 11; i++) {
-        result = await call('/v1/livres/isbn', {
-          method: 'POST',
-          body: { isbn: '9782070612758' },
-        });
+        result = await call('/v1/livres/isbn/9782070612758');
         if (result.response.status === 429) break;
       }
-      check(result, 429, '/v1/livres/isbn');
+      check(result, 429, '/v1/livres/isbn/9782070612758');
       assert.ok(Number(result.response.headers.get('retry-after')) > 0);
     });
     await t.test('les réponses de succès restent inchangées', async () => {

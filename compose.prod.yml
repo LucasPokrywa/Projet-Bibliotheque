@@ -1,0 +1,46 @@
+# À combiner avec docker-compose.yml : ./start.sh --production
+services:
+  api:
+    # Retirer le port public défini dans le Compose de développement.
+    ports: !reset []
+    environment:
+      TRUST_PROXY_IP: ${CADDY_IP:-172.30.81.2}
+    networks:
+      default: {}
+      proxy:
+        ipv4_address: ${API_PROXY_IP:-172.30.81.3}
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Définissez API_DOMAIN dans .env (nom de domaine sans https://)}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./ops/caddy:/etc/caddy:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      proxy:
+        ipv4_address: ${CADDY_IP:-172.30.81.2}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  proxy:
+    ipam:
+      config:
+        - subnet: ${CADDY_SUBNET:-172.30.81.0/24}
+
+volumes:
+  caddy_data:
+  caddy_config:

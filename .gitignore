@@ -46,3 +46,9 @@ Thumbs.db
 
 # Docker overrides
 docker-compose.override.yml
+
+# Backup exports and recovered secrets
+/backups/
+/backup-state/
+*.dump
+*.backup.tar

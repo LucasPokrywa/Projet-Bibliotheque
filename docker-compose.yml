@@ -26,7 +26,7 @@ services:
     build:
       context: ./api
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${POSTGRES_DB:-production}
       JWT_SECRET: ${JWT_SECRET:?Définissez JWT_SECRET dans .env (au moins 32 octets aléatoires)}
       HOST: 0.0.0.0
       PORT: 3000

@@ -30,15 +30,15 @@ import {
 } from '@nestjs/common';
 import { AuthGuard, CurrentSession } from '../auth/auth.guard.js';
 import type { SessionIdentity } from '../auth/auth.service.js';
-import { AddLivreDto, LectureDto } from './bibliotheque.dto.js';
-import { BibliothequeService } from './bibliotheque.service.js';
+import { AddLivreDto, LectureDto } from '../bibliotheque/bibliotheque.dto.js';
+import { BibliothequeService } from '../bibliotheque/bibliotheque.service.js';
 
 @ApiTags('Bibliothèque')
 @ApiBadRequestResponse({ description: 'Données ou paramètres invalides' })
 @ApiTooManyRequestsResponse({ description: 'Trop de requêtes' })
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: 'Jeton absent, invalide ou expiré' })
-@Controller('bibliotheque')
+@Controller('v1/bibliotheque')
 @UseGuards(AuthGuard)
 export class BibliothequeController {
   constructor(

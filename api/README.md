@@ -22,8 +22,8 @@ Après démarrage, ouvrir [Swagger UI](http://localhost:3000/docs).
 La spécification OpenAPI est disponible sur [docs-json](http://localhost:3000/docs-json),
 notamment pour l’importer dans Postman. Adapter le port si `API_PORT` a été modifié.
 
-1. Ouvrir `POST /auth/register`, cliquer sur **Try it out**, remplir le JSON et exécuter.
-2. Appeler `POST /auth/login` avec les mêmes identifiants.
+1. Ouvrir `POST /v1/auth/register`, cliquer sur **Try it out**, remplir le JSON et exécuter.
+2. Appeler `POST /v1/auth/login` avec les mêmes identifiants.
 3. Copier `access_token`, cliquer sur **Authorize** et coller le jeton seul, sans `Bearer`.
 4. Tester les routes utilisateurs, livres et bibliothèque.
 
@@ -50,13 +50,13 @@ implémenté ici).
 
 ## Authentification et sessions
 
-- `POST /auth/register` : `{ "pseudo": "lucas", "email": "lucas@example.com", "mot_de_passe": "une-phrase-secrete-longue" }`.
+- `POST /v1/auth/register` : `{ "pseudo": "lucas", "email": "lucas@example.com", "mot_de_passe": "une-phrase-secrete-longue" }`.
   Retourne le profil public. Le mot de passe doit contenir entre 12 et 128 caractères.
-- `POST /auth/login` : `{ "email": "lucas@example.com", "mot_de_passe": "une-phrase-secrete-longue" }`.
+- `POST /v1/auth/login` : `{ "email": "lucas@example.com", "mot_de_passe": "une-phrase-secrete-longue" }`.
   Retourne `access_token`, `token_type: "Bearer"` et `expires_in: 3600`.
-- `POST /auth/logout` : révoque la session courante, réponse 204.
-- `POST /auth/logout-all` : révoque toutes les sessions de l'utilisateur, réponse 204.
-- `GET /users/me` : profil de l'utilisateur connecté, sans hash.
+- `POST /v1/auth/logout` : révoque la session courante, réponse 204.
+- `POST /v1/auth/logout-all` : révoque toutes les sessions de l'utilisateur, réponse 204.
+- `GET /v1/users/me` : profil de l'utilisateur connecté, sans hash.
 
 Les routes protégées attendent `Authorization: Bearer <access_token>`.
 Les JWT utilisent HS256 avec contrôle de signature, émetteur, audience et expiration.
@@ -73,13 +73,13 @@ Utiliser HTTPS pour exposer cette API et ne pas journaliser les tokens ou mots d
 
 | Méthode | Route | Corps / résultat |
 | --- | --- | --- |
-| GET | `/livres` | Les 100 premiers livres du catalogue, par identifiant |
-| GET | `/livres/:id` | Un livre |
-| POST | `/livres` | `{ "titre": "...", "auteur": "...", "isbn": "...", "date_publication": "2026-01-01" }` ; ISBN et date facultatifs |
-| GET | `/bibliotheque` | Livres de l'utilisateur connecté avec leur statut `lu` |
-| POST | `/bibliotheque` | `{ "livre_id": 1 }` |
-| PATCH | `/bibliotheque/:livreId` | `{ "lu": true }` |
-| DELETE | `/bibliotheque/:livreId` | Retire le livre de sa bibliothèque ; réponse 204 |
+| GET | `/v1/livres` | Les 100 premiers livres du catalogue, par identifiant |
+| GET | `/v1/livres/:id` | Un livre |
+| POST | `/v1/livres` | `{ "titre": "...", "auteur": "...", "isbn": "...", "date_publication": "2026-01-01" }` ; ISBN et date facultatifs |
+| GET | `/v1/bibliotheque` | Livres de l'utilisateur connecté avec leur statut `lu` |
+| POST | `/v1/bibliotheque` | `{ "livre_id": 1 }` |
+| PATCH | `/v1/bibliotheque/:livreId` | `{ "lu": true }` |
+| DELETE | `/v1/bibliotheque/:livreId` | Retire le livre de sa bibliothèque ; réponse 204 |
 
 L'identité vient exclusivement de la session. Un même livre ne peut apparaître
 qu'une fois dans la bibliothèque d'un utilisateur. Tout utilisateur connecté peut
@@ -106,7 +106,7 @@ Il crée ses propres utilisateurs/livres et les supprime à la fin.
 
 `utilisateurs.permission` vaut **0** pour un utilisateur normal et **1** pour
 un administrateur. L'inscription publique impose la valeur par défaut 0 ;
-le client ne peut pas fournir ce champ. Le profil retourné par `/users/me`
+le client ne peut pas fournir ce champ. Le profil retourné par `/v1/users/me`
 expose cette permission. Aucune route réservée aux administrateurs n'est encore définie.
 
 Pour une base neuve, `bdd/init.sql` crée un administrateur si `ADMIN_EMAIL`,
@@ -123,7 +123,7 @@ La promotion d'un compte existant doit être faite explicitement en base.
 
 ## Recherche ISBN avec Python
 
-`POST /livres/isbn` (JWT obligatoire) cherche d’abord dans PostgreSQL. Si aucun
+`POST /v1/livres/isbn` (JWT obligatoire) cherche d’abord dans PostgreSQL. Si aucun
 livre ne correspond, la route appelle `python_script/isbn_scrap.py` :
 
 ```json
@@ -164,7 +164,7 @@ application/problem+json`, avec le statut HTTP correspondant :
   "title": "Not Found",
   "status": 404,
   "detail": "Livre introuvable",
-  "instance": "/livres/12"
+  "instance": "/v1/livres/12"
 }
 ```
 
@@ -179,3 +179,13 @@ Ce format remplace les anciennes réponses `{statusCode, message, error}` ainsi
 que `{"error":"..."}` pour un ISBN introuvable. Les réponses de succès sont
 inchangées. Swagger décrit le schéma `ProblemDetailsDto` pour les erreurs.
 Les erreurs produites par un proxy devant NestJS ne sont pas concernées.
+
+## Version des routes
+
+Toutes les routes métier sont préfixées par `/v1`, par exemple
+`/v1/auth/login`, `/v1/users/me`, `/v1/livres` et `/v1/bibliotheque`.
+Le message d’accueil est disponible sur `/v1`. Les anciennes URL sans préfixe
+ne sont plus exposées. Les contrôleurs sont regroupés dans `api/src/v1/` ;
+les services et DTO restent dans leurs dossiers métier.
+Swagger reste disponible sur `/docs` et son export sur `/docs-json`, avec les
+URL `/v1` dans la spécification.

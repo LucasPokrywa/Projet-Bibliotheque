@@ -1,20 +1,20 @@
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
 import { IsbnService } from './livres/isbn.service.js';
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller.js';
+import { AppController } from './v1/app.controller.js';
 import { AppService } from './app.service.js';
 import { DatabaseService } from './database.service.js';
 import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { AuthController } from './auth/auth.controller.js';
+import { AuthController } from './v1/auth.controller.js';
 import { AuthService } from './auth/auth.service.js';
 import { AuthGuard } from './auth/auth.guard.js';
-import { UsersController } from './users/users.controller.js';
+import { UsersController } from './v1/users.controller.js';
 import { UsersService } from './users/users.service.js';
-import { LivresController } from './livres/livres.controller.js';
+import { LivresController } from './v1/livres.controller.js';
 import { LivresService } from './livres/livres.service.js';
-import { BibliothequeController } from './bibliotheque/bibliotheque.controller.js';
+import { BibliothequeController } from './v1/bibliotheque.controller.js';
 import { BibliothequeService } from './bibliotheque/bibliotheque.service.js';
 
 @Module({

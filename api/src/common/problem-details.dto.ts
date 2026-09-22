@@ -17,7 +17,7 @@ export class ProblemDetailsDto {
   @ApiProperty({ type: String, example: 'Livre introuvable' })
   detail: string;
 
-  @ApiProperty({ type: String, format: 'uri-reference', example: '/livres/12' })
+  @ApiProperty({ type: String, format: 'uri-reference', example: '/v1/livres/12' })
   instance: string;
 
   @ApiPropertyOptional({

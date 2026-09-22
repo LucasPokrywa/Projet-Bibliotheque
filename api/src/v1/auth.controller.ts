@@ -21,15 +21,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { AuthService } from './auth.service.js';
-import type { SessionIdentity } from './auth.service.js';
-import { AuthGuard, CurrentSession } from './auth.guard.js';
-import { LoginDto, RegisterDto } from './auth.dto.js';
+import { AuthService } from '../auth/auth.service.js';
+import type { SessionIdentity } from '../auth/auth.service.js';
+import { AuthGuard, CurrentSession } from '../auth/auth.guard.js';
+import { LoginDto, RegisterDto } from '../auth/auth.dto.js';
 
 @ApiTags('Authentification')
 @ApiBadRequestResponse({ description: 'Données ou paramètres invalides' })
 @ApiTooManyRequestsResponse({ description: 'Trop de requêtes' })
-@Controller('auth')
+@Controller('v1/auth')
 export class AuthController {
   constructor(@Inject(AuthService) private readonly auth: AuthService) {}
 

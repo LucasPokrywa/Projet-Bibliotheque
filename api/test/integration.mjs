@@ -42,12 +42,12 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
     await t.test(
       'refuse les routes privées et les entrées invalides',
       async () => {
-        assert.equal((await call('/users/me')).status, 401);
-        assert.equal((await call('/livres')).status, 401);
-        assert.equal((await call('/bibliotheque')).status, 401);
+        assert.equal((await call('/v1/users/me')).status, 401);
+        assert.equal((await call('/v1/livres')).status, 401);
+        assert.equal((await call('/v1/bibliotheque')).status, 401);
         assert.equal(
           (
-            await call('/auth/register', 'POST', {
+            await call('/v1/auth/register', 'POST', {
               email: 'invalide',
               pseudo: 'a',
               mot_de_passe: 'court',
@@ -57,7 +57,7 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
         );
         assert.equal(
           (
-            await call('/auth/register', 'POST', {
+            await call('/v1/auth/register', 'POST', {
               email: emails[0],
               pseudo: 'a',
               mot_de_passe: password,
@@ -70,7 +70,7 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
     );
     await t.test('inscrit deux utilisateurs sans exposer le hash', async () => {
       for (const email of emails) {
-        const result = await call('/auth/register', 'POST', {
+        const result = await call('/v1/auth/register', 'POST', {
           email,
           pseudo: 'Lecteur',
           mot_de_passe: password,
@@ -100,7 +100,7 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
       assert.notEqual(hashes.rows[0].mot_de_passe, hashes.rows[1].mot_de_passe);
       assert.equal(
         (
-          await call('/auth/register', 'POST', {
+          await call('/v1/auth/register', 'POST', {
             email: emails[0].toUpperCase(),
             pseudo: 'Doublon',
             mot_de_passe: password,
@@ -112,7 +112,7 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
     await t.test('authentifie et refuse les mauvais identifiants', async () => {
       assert.equal(
         (
-          await call('/auth/login', 'POST', {
+          await call('/v1/auth/login', 'POST', {
             email: emails[0],
             mot_de_passe: 'incorrect-password',
           })
@@ -121,21 +121,21 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
       );
       assert.equal(
         (
-          await call('/auth/login', 'POST', {
+          await call('/v1/auth/login', 'POST', {
             email: 'absent@example.com',
             mot_de_passe: password,
           })
         ).status,
         401,
       );
-      const a = await call('/auth/login', 'POST', {
+      const a = await call('/v1/auth/login', 'POST', {
         email: emails[0].toUpperCase(),
         mot_de_passe: password,
       });
       assert.equal(a.status, 200);
       tokenA = a.body.access_token;
       tokenB = (
-        await call('/auth/login', 'POST', {
+        await call('/v1/auth/login', 'POST', {
           email: emails[1],
           mot_de_passe: password,
         })
@@ -143,7 +143,7 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
       sessionId = JSON.parse(
         Buffer.from(tokenA.split('.')[1], 'base64url').toString(),
       ).sid;
-      const me = await call('/users/me', 'GET', undefined, tokenA);
+      const me = await call('/v1/users/me', 'GET', undefined, tokenA);
       assert.equal(me.status, 200);
       assert.equal(me.body.id, userA);
       assert.equal(me.body.mot_de_passe, undefined);
@@ -152,7 +152,7 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
       'refuse les JWT falsifiés, expirés et sans session',
       async () => {
         assert.equal(
-          (await call('/users/me', 'GET', undefined, `${tokenA}invalid`))
+          (await call('/v1/users/me', 'GET', undefined, `${tokenA}invalid`))
             .status,
           401,
         );
@@ -168,7 +168,7 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
         assert.equal(
           (
             await call(
-              '/users/me',
+              '/v1/users/me',
               'GET',
               undefined,
               await sign(sessionId, Math.floor(Date.now() / 1000) - 60),
@@ -179,7 +179,7 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
         assert.equal(
           (
             await call(
-              '/users/me',
+              '/v1/users/me',
               'GET',
               undefined,
               await sign(randomUUID(), '1h'),
@@ -192,7 +192,7 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
           [sessionId],
         );
         assert.equal(
-          (await call('/users/me', 'GET', undefined, tokenA)).status,
+          (await call('/v1/users/me', 'GET', undefined, tokenA)).status,
           401,
         );
         await db.query(
@@ -211,7 +211,7 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
       assert.equal(
         (
           await call(
-            '/livres',
+            '/v1/livres',
             'POST',
             { ...book, date_publication: '2026-02-30' },
             tokenA,
@@ -219,18 +219,18 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
         ).status,
         400,
       );
-      const created = await call('/livres', 'POST', book, tokenA);
+      const created = await call('/v1/livres', 'POST', book, tokenA);
       assert.equal(created.status, 201);
       bookId = created.body.id;
-      assert.equal((await call('/livres', 'POST', book, tokenA)).status, 409);
+      assert.equal((await call('/v1/livres', 'POST', book, tokenA)).status, 409);
       assert.equal(
-        (await call(`/livres/${bookId}`, 'GET', undefined, tokenA)).status,
+        (await call(`/v1/livres/${bookId}`, 'GET', undefined, tokenA)).status,
         200,
       );
       assert.equal(
         (
           await call(
-            '/bibliotheque',
+            '/v1/bibliotheque',
             'POST',
             { livre_id: bookId, utilisateur_id: userA },
             tokenB,
@@ -239,33 +239,33 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
         400,
       );
       assert.equal(
-        (await call('/bibliotheque', 'POST', { livre_id: bookId }, tokenA))
+        (await call('/v1/bibliotheque', 'POST', { livre_id: bookId }, tokenA))
           .status,
         201,
       );
       assert.equal(
-        (await call('/bibliotheque', 'POST', { livre_id: bookId }, tokenA))
+        (await call('/v1/bibliotheque', 'POST', { livre_id: bookId }, tokenA))
           .status,
         409,
       );
       assert.deepEqual(
-        (await call('/bibliotheque', 'GET', undefined, tokenB)).body,
+        (await call('/v1/bibliotheque', 'GET', undefined, tokenB)).body,
         [],
       );
       assert.equal(
-        (await call(`/bibliotheque/${bookId}`, 'PATCH', { lu: true }, tokenB))
+        (await call(`/v1/bibliotheque/${bookId}`, 'PATCH', { lu: true }, tokenB))
           .status,
         404,
       );
       assert.equal(
-        (await call(`/bibliotheque/${bookId}`, 'DELETE', undefined, tokenB))
+        (await call(`/v1/bibliotheque/${bookId}`, 'DELETE', undefined, tokenB))
           .status,
         404,
       );
       assert.equal(
         (
           await call(
-            `/bibliotheque/${bookId}`,
+            `/v1/bibliotheque/${bookId}`,
             'PATCH',
             { lu: 'false' },
             tokenA,
@@ -274,62 +274,62 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
         400,
       );
       assert.equal(
-        (await call(`/bibliotheque/${bookId}`, 'PATCH', { lu: true }, tokenA))
+        (await call(`/v1/bibliotheque/${bookId}`, 'PATCH', { lu: true }, tokenA))
           .body.lu,
         true,
       );
       assert.equal(
-        (await call(`/bibliotheque/${bookId}`, 'DELETE', undefined, tokenA))
+        (await call(`/v1/bibliotheque/${bookId}`, 'DELETE', undefined, tokenA))
           .status,
         204,
       );
     });
     await t.test('révoque une session puis toutes les sessions', async () => {
       const second = (
-        await call('/auth/login', 'POST', {
+        await call('/v1/auth/login', 'POST', {
           email: emails[0],
           mot_de_passe: password,
         })
       ).body.access_token;
       assert.equal(
-        (await call('/auth/logout', 'POST', undefined, tokenA)).status,
+        (await call('/v1/auth/logout', 'POST', undefined, tokenA)).status,
         204,
       );
       assert.equal(
-        (await call('/users/me', 'GET', undefined, tokenA)).status,
+        (await call('/v1/users/me', 'GET', undefined, tokenA)).status,
         401,
       );
       assert.equal(
-        (await call('/users/me', 'GET', undefined, second)).status,
+        (await call('/v1/users/me', 'GET', undefined, second)).status,
         200,
       );
       const third = (
-        await call('/auth/login', 'POST', {
+        await call('/v1/auth/login', 'POST', {
           email: emails[0],
           mot_de_passe: password,
         })
       ).body.access_token;
       assert.equal(
-        (await call('/auth/logout-all', 'POST', undefined, second)).status,
+        (await call('/v1/auth/logout-all', 'POST', undefined, second)).status,
         204,
       );
       assert.equal(
-        (await call('/users/me', 'GET', undefined, second)).status,
+        (await call('/v1/users/me', 'GET', undefined, second)).status,
         401,
       );
       assert.equal(
-        (await call('/users/me', 'GET', undefined, third)).status,
+        (await call('/v1/users/me', 'GET', undefined, third)).status,
         401,
       );
       assert.equal(
-        (await call('/users/me', 'GET', undefined, tokenB)).status,
+        (await call('/v1/users/me', 'GET', undefined, tokenB)).status,
         200,
       );
     });
     await t.test('limite les tentatives de connexion', async () => {
       let result;
       for (let i = 0; i < 11; i++) {
-        result = await call('/auth/login', 'POST', {
+        result = await call('/v1/auth/login', 'POST', {
           email: 'invalid',
           mot_de_passe: 'short',
         });

@@ -5,8 +5,8 @@ import {
 } from '@nestjs/swagger';
 import { HttpCode } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { IsbnDto, IsbnResultDto } from './isbn.dto.js';
-import { IsbnService } from './isbn.service.js';
+import { IsbnDto, IsbnResultDto } from '../livres/isbn.dto.js';
+import { IsbnService } from '../livres/isbn.service.js';
 import {
   ApiTags,
   ApiOperation,
@@ -31,15 +31,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard.js';
-import { CreateLivreDto } from './livres.dto.js';
-import { LivresService } from './livres.service.js';
+import { CreateLivreDto } from '../livres/livres.dto.js';
+import { LivresService } from '../livres/livres.service.js';
 
 @ApiTags('Livres')
 @ApiBadRequestResponse({ description: 'Données ou paramètres invalides' })
 @ApiTooManyRequestsResponse({ description: 'Trop de requêtes' })
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: 'Jeton absent, invalide ou expiré' })
-@Controller('livres')
+@Controller('v1/livres')
 @UseGuards(AuthGuard)
 export class LivresController {
   constructor(

@@ -18,7 +18,9 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd ${{ vars.VPS_PROJECT_PATH}}
+            set -e
+            cd "${{ vars.VPS_PROJECT_PATH }}"
+            git sparse-checkout set --no-cone '/*' '!/mobile/'
             git fetch origin main
             git reset --hard origin/main
             ./start.sh --production

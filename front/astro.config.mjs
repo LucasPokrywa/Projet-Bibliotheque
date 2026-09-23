@@ -2,11 +2,14 @@
 import { defineConfig } from 'astro/config';
 
 /** @param {import('vite').ViteDevServer | import('vite').PreviewServer} server */
-function profileRoutes(server) {
+function userRoutes(server) {
   server.middlewares.use((request, _response, next) => {
     const url = new URL(request.url ?? '/', 'http://localhost');
-    if (url.pathname.startsWith('/profil/') && url.pathname !== '/profil/') {
-      request.url = `/profil/${url.search}`;
+    for (const page of ['profil']) {
+      if (url.pathname.startsWith(`/${page}/`) && url.pathname !== `/${page}/`) {
+        request.url = `/${page}/${url.search}`;
+        break;
+      }
     }
     next();
   });
@@ -14,6 +17,6 @@ function profileRoutes(server) {
 
 export default defineConfig({
   vite: {
-    plugins: [{ name: 'profile-routes', configureServer: profileRoutes, configurePreviewServer: profileRoutes }],
+    plugins: [{ name: 'user-routes', configureServer: userRoutes, configurePreviewServer: userRoutes }],
   },
 });

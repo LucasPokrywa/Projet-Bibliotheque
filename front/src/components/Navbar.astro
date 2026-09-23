@@ -1,7 +1,7 @@
 
 <nav class="navbar">
     <a href="/">Accueil</a>
-    <a href="/bibliotheque">Ma bibliothèque</a>
+    <a id="nav-library" href="/bibliotheque">Ma bibliothèque</a>
     <a href="/livres">Livres</a>
     <a id="nav-login" href="/login" hidden>Connexion</a>
     <a id="nav-session" href="/profil" hidden>Mon profil</a>
@@ -27,6 +27,8 @@
 <style>
     .navbar {
         display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
         gap: 2rem;
         align-items: center;
         padding: 1rem 2rem;

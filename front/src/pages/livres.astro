@@ -19,12 +19,14 @@ import Navbar from '../components/Navbar.astro';
 			<form id="ajout-livre" hidden>
 				<fieldset id="ajout-champs">
 					<legend>Livre trouvé</legend>
-					<label for="ajout-isbn">ISBN recherché</label>
-					<input id="ajout-isbn" name="isbn" readonly />
-					<label for="ajout-titre">Titre</label>
-					<input id="ajout-titre" name="titre" readonly />
-					<label for="ajout-auteur">Auteur(s)</label>
-					<input id="ajout-auteur" name="auteur" readonly />
+					<dl class="livre-resultat">
+						<dt>ISBN recherché</dt>
+						<dd id="ajout-isbn"></dd>
+						<dt>Titre</dt>
+						<dd id="ajout-titre"></dd>
+						<dt>Auteur(s)</dt>
+						<dd id="ajout-auteur"></dd>
+					</dl>
 					<button type="submit">Ajouter à ma bibliothèque</button>
 				</fieldset>
 			</form>
@@ -58,9 +60,9 @@ import Navbar from '../components/Navbar.astro';
 		const login = document.querySelector<HTMLParagraphElement>('#recherche-login');
 		const ajout = document.querySelector<HTMLFormElement>('#ajout-livre');
 		const champs = document.querySelector<HTMLFieldSetElement>('#ajout-champs');
-		const isbnAjout = document.querySelector<HTMLInputElement>('#ajout-isbn');
-		const titre = document.querySelector<HTMLInputElement>('#ajout-titre');
-		const auteur = document.querySelector<HTMLInputElement>('#ajout-auteur');
+		const isbnAjout = document.querySelector<HTMLElement>('#ajout-isbn');
+		const titre = document.querySelector<HTMLElement>('#ajout-titre');
+		const auteur = document.querySelector<HTMLElement>('#ajout-auteur');
 		if (!recherche || !isbn || !bouton || !status || !login || !ajout || !champs || !isbnAjout || !titre || !auteur) return;
 		let enCours = false;
 		let livreId: number | undefined;
@@ -104,9 +106,9 @@ import Navbar from '../components/Navbar.astro';
 				}
 				livreId = livre.id;
 				champs.disabled = false;
-				isbnAjout.value = valeur;
-				titre.value = livre.title ?? '';
-				auteur.value = livre.authors.join(', ');
+				isbnAjout.textContent = valeur;
+				titre.textContent = livre.title ?? '';
+				auteur.textContent = livre.authors.join(', ');
 				ajout.hidden = false;
 				status.textContent = 'Ce livre est enregistré au catalogue. Vous pouvez l’ajouter à votre bibliothèque.';
 				await chargerLivres();
@@ -250,6 +252,16 @@ import Navbar from '../components/Navbar.astro';
 </script>
 
 <style>
+	.livre-resultat dt {
+		font-weight: 600;
+		margin-top: 0.75rem;
+	}
+
+	.livre-resultat dd {
+		margin: 0.25rem 0 0;
+		overflow-wrap: anywhere;
+	}
+
 	.livres-page {
 		max-width: 900px;
 		margin: 0 auto;

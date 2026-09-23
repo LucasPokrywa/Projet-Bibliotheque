@@ -14,14 +14,26 @@ import Navbar from '../components/Navbar.astro';
 </Layout>
 
 <script>
+	import { getSession } from '../lib/auth';
 	const apiUrl = 'https://api.bibliotheque.lucaspokrywa.site/v1/bibliotheque';
-	async function chargerBibliotheque() {
+	async function chargerBibliotheque(refresh = false) {
 		const status = document.querySelector<HTMLParagraphElement>('#bibliotheque-status');
 		const login = document.querySelector<HTMLParagraphElement>('#bibliotheque-login');
 		const liste = document.querySelector<HTMLUListElement>('#bibliotheque-livres');
 		if (!status || !login || !liste) return;
+		liste.replaceChildren();
+		liste.hidden = true;
+		login.hidden = true;
+		status.textContent = 'Chargement de vos livres…';
 
 		try {
+			const user = await getSession(refresh);
+			if (user === null) {
+				status.textContent = 'Connectez-vous pour consulter votre bibliothèque.';
+				login.hidden = false;
+				return;
+			}
+			if (!user) throw new Error('Session indisponible');
 			const response = await fetch(apiUrl, {
 				credentials: 'include',
 				cache: 'no-store',
@@ -109,6 +121,9 @@ import Navbar from '../components/Navbar.astro';
 	}
 
 	void chargerBibliotheque();
+	window.addEventListener('pageshow', (event) => {
+		if (event.persisted) void chargerBibliotheque(true);
+	});
 </script>
 
 <style>

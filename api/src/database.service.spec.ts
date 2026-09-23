@@ -1,47 +1,38 @@
 import { DatabaseService } from './database.service.js';
 
-const { connect, query, release } = vi.hoisted(() => ({
-  connect: vi.fn(),
-  query: vi.fn(),
-  release: vi.fn(),
+const { query, execute, connect, disconnect, transaction } = vi.hoisted(() => ({
+  query: vi.fn(), execute: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), transaction: vi.fn(),
 }));
-vi.mock('pg', () => ({
-  Pool: class {
-    on() {}
-    connect = connect;
-  },
-}));
+vi.mock('@prisma/adapter-pg', () => ({ PrismaPg: class {} }));
+vi.mock('./generated/prisma/client.js', () => ({ PrismaClient: class {
+  $connect = connect;
+  $disconnect = disconnect;
+  $transaction = transaction;
+} }));
 
-describe('Contrôle PostgreSQL', () => {
+describe('Contrôle PostgreSQL via Prisma', () => {
   beforeEach(() => {
-    query.mockReset().mockResolvedValue({ rows: [{ '?column?': 1 }] });
-    release.mockReset();
-    connect.mockReset().mockResolvedValue({ query, release });
+    vi.clearAllMocks();
+    query.mockResolvedValue([{ '?column?': 1 }]);
+    execute.mockResolvedValue(0);
+    transaction.mockImplementation(async (callback) => callback({ $executeRaw: execute, $queryRaw: query }));
   });
-
-  it('borne la requête et rend la connexion au pool', async () => {
+  it('borne la transaction et le délai SQL du contrôle de santé', async () => {
     await new DatabaseService().checkHealth();
-    expect(query).toHaveBeenCalledWith({
-      text: 'SELECT 1',
-      query_timeout: 2000,
-    });
-    expect(release).toHaveBeenCalledExactlyOnceWith(false);
+    expect(transaction.mock.calls[0][1]).toEqual({ maxWait: 5000, timeout: 3000 });
+    expect(execute.mock.calls[0][0][0]).toContain("statement_timeout = '2s'");
+    expect(query.mock.calls[0][0][0]).toBe('SELECT 1');
   });
-
-  it('détruit une connexion en échec plutôt que de la réutiliser', async () => {
-    query.mockRejectedValue(new Error('Query read timeout'));
-    await expect(new DatabaseService().checkHealth()).rejects.toThrow(
-      'Query read timeout',
-    );
-    expect(release).toHaveBeenCalledExactlyOnceWith(true);
+  it('propage une panne de la base', async () => {
+    query.mockRejectedValue(new Error('Base indisponible'));
+    await expect(new DatabaseService().checkHealth()).rejects.toThrow('Base indisponible');
   });
-
-  it('signale une impossibilité d’acquérir une connexion', async () => {
-    connect.mockRejectedValue(new Error('Connection timeout'));
-    await expect(new DatabaseService().checkHealth()).rejects.toThrow(
-      'Connection timeout',
-    );
-    expect(query).not.toHaveBeenCalled();
-    expect(release).not.toHaveBeenCalled();
+  it('connecte au démarrage et ferme le client à l’arrêt', async () => {
+    const db = new DatabaseService();
+    await db.onModuleInit();
+    expect(connect).toHaveBeenCalledOnce();
+    expect(query).toHaveBeenCalledOnce();
+    await db.onModuleDestroy();
+    expect(disconnect).toHaveBeenCalledOnce();
   });
 });

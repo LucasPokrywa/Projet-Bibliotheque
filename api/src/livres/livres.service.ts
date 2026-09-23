@@ -1,57 +1,29 @@
-import {
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database.service.js';
 import type { CreateLivreDto } from './livres.dto.js';
-
-export interface Livre {
-  id: number;
-  titre: string;
-  auteur: string;
-  isbn: string | null;
-  date_publication: Date | null;
-}
 
 @Injectable()
 export class LivresService {
   constructor(@Inject(DatabaseService) private readonly db: DatabaseService) {}
 
-  async list() {
-    return (
-      await this.db.query<Livre>(
-        'SELECT id, titre, auteur, isbn, date_publication FROM livres ORDER BY id LIMIT 100',
-      )
-    ).rows;
+  list() {
+    return this.db.livres.findMany({ orderBy: { id: 'asc' }, take: 100 });
   }
 
   async findById(id: number) {
-    const result = await this.db.query<Livre>(
-      'SELECT id, titre, auteur, isbn, date_publication FROM livres WHERE id = $1',
-      [id],
-    );
-    if (!result.rows[0]) throw new NotFoundException('Livre introuvable');
-    return result.rows[0];
+    const book = await this.db.livres.findUnique({ where: { id } });
+    if (!book) throw new NotFoundException('Livre introuvable');
+    return book;
   }
 
   async create(dto: CreateLivreDto) {
     try {
-      return (
-        await this.db.query<Livre>(
-          'INSERT INTO livres (titre, auteur, isbn, date_publication) VALUES ($1, $2, $3, $4) RETURNING id, titre, auteur, isbn, date_publication',
-          [
-            dto.titre,
-            dto.auteur,
-            dto.isbn ?? null,
-            dto.date_publication ?? null,
-          ],
-        )
-      ).rows[0];
+      return await this.db.livres.create({ data: {
+        titre: dto.titre, auteur: dto.auteur, isbn: dto.isbn ?? null,
+        date_publication: dto.date_publication ? new Date(`${dto.date_publication}T00:00:00.000Z`) : null,
+      } });
     } catch (error) {
-      if ((error as { code?: string }).code === '23505')
-        throw new ConflictException('ISBN déjà présent');
+      if ((error as { code?: string }).code === 'P2002') throw new ConflictException('ISBN déjà présent');
       throw error;
     }
   }

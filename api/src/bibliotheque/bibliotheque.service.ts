@@ -1,57 +1,44 @@
-import {
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database.service.js';
+
+const fields = { id: true, livre_id: true, lu: true } as const;
 
 @Injectable()
 export class BibliothequeService {
   constructor(@Inject(DatabaseService) private readonly db: DatabaseService) {}
 
   async list(userId: number) {
-    return (
-      await this.db.query(
-        'SELECT b.id, b.livre_id, b.lu, l.titre, l.auteur, l.isbn, l.date_publication FROM bibliotheque b JOIN livres l ON l.id = b.livre_id WHERE b.utilisateur_id = $1 ORDER BY b.id',
-        [userId],
-      )
-    ).rows;
+    const entries = await this.db.bibliotheque.findMany({
+      where: { utilisateur_id: userId }, orderBy: { id: 'asc' },
+      select: { ...fields, livre: { select: { titre: true, auteur: true, isbn: true, date_publication: true } } },
+    });
+    return entries.map(({ livre, ...entry }) => ({ ...entry, ...livre }));
   }
 
   async add(userId: number, livreId: number) {
     try {
-      return (
-        await this.db.query(
-          'INSERT INTO bibliotheque (utilisateur_id, livre_id) VALUES ($1, $2) RETURNING id, livre_id, lu',
-          [userId, livreId],
-        )
-      ).rows[0];
+      return await this.db.bibliotheque.create({ data: { utilisateur_id: userId, livre_id: livreId }, select: fields });
     } catch (error) {
-      if ((error as { code?: string }).code === '23505')
-        throw new ConflictException('Livre déjà dans votre bibliothèque');
-      if ((error as { code?: string }).code === '23503')
-        throw new NotFoundException('Livre ou utilisateur introuvable');
+      const code = (error as { code?: string }).code;
+      if (code === 'P2002') throw new ConflictException('Livre déjà dans votre bibliothèque');
+      if (code === 'P2003') throw new NotFoundException('Livre ou utilisateur introuvable');
       throw error;
     }
   }
 
   async setRead(userId: number, livreId: number, lu: boolean) {
-    const result = await this.db.query(
-      'UPDATE bibliotheque SET lu = $3 WHERE utilisateur_id = $1 AND livre_id = $2 RETURNING id, livre_id, lu',
-      [userId, livreId, lu],
-    );
-    if (!result.rows[0])
-      throw new NotFoundException('Livre absent de votre bibliothèque');
-    return result.rows[0];
+    try {
+      return await this.db.bibliotheque.update({
+        where: { utilisateur_id_livre_id: { utilisateur_id: userId, livre_id: livreId } }, data: { lu }, select: fields,
+      });
+    } catch (error) {
+      if ((error as { code?: string }).code === 'P2025') throw new NotFoundException('Livre absent de votre bibliothèque');
+      throw error;
+    }
   }
 
   async remove(userId: number, livreId: number): Promise<void> {
-    const result = await this.db.query(
-      'DELETE FROM bibliotheque WHERE utilisateur_id = $1 AND livre_id = $2 RETURNING id',
-      [userId, livreId],
-    );
-    if (!result.rows[0])
-      throw new NotFoundException('Livre absent de votre bibliothèque');
+    const result = await this.db.bibliotheque.deleteMany({ where: { utilisateur_id: userId, livre_id: livreId } });
+    if (!result.count) throw new NotFoundException('Livre absent de votre bibliothèque');
   }
 }

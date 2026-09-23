@@ -12,20 +12,20 @@ vi.mock('node:child_process', async () => {
 
 describe('Recherche ISBN', () => {
   const query = vi.fn();
-  const database = { query } as unknown as DatabaseService;
+  const create = vi.fn();
+  const database = { $queryRaw: query, livres: { create } } as unknown as DatabaseService;
   beforeEach(() => {
     execute.mockReset();
-    query.mockReset().mockResolvedValue({ rows: [] });
+    query.mockReset().mockResolvedValue([]);
+    create.mockReset();
   });
 
   it('renvoie le livre en base sans lancer Python', async () => {
-    query.mockResolvedValue({
-      rows: [{ titre: 'Livre local', auteur: 'Auteur local' }],
-    });
+    query.mockResolvedValue([{ titre: 'Livre local', auteur: 'Auteur local' }]);
     expect(await new IsbnService(database).lookup('978-2-07-061275-8')).toEqual(
       { title: 'Livre local', authors: ['Auteur local'] },
     );
-    expect(query.mock.calls[0][1]).toEqual(['9782070612758']);
+    expect(query.mock.calls[0][1]).toEqual('9782070612758');
     expect(execute).not.toHaveBeenCalled();
   });
 
@@ -120,23 +120,23 @@ describe('Recherche ISBN', () => {
   });
 
   it('scan : réutilise le livre existant sans Python ni insertion', async () => {
-    query.mockResolvedValue({ rows: [{ id: 42, titre: 'Local', auteur: 'Auteur' }] });
+    query.mockResolvedValue([{ id: 42, titre: 'Local', auteur: 'Auteur' }]);
     expect(await new IsbnService(database).scan('978-2-07-061275-8')).toEqual({ id: 42, title: 'Local', authors: ['Auteur'] });
     expect(query).toHaveBeenCalledTimes(1);
+    expect(create).not.toHaveBeenCalled();
     expect(execute).not.toHaveBeenCalled();
   });
 
   it('scan : insère uniquement les informations Python et renvoie l’identifiant', async () => {
-    query.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [{ id: 7 }] });
+    create.mockResolvedValue({ id: 7 });
     execute.mockResolvedValue({ stdout: '{"title":"Livre trouvé","authors":["A","B"]}' });
     expect(await new IsbnService(database).scan('978-2-07-061275-8')).toEqual({ id: 7, title: 'Livre trouvé', authors: ['A', 'B'] });
-    expect(query.mock.calls[1][0]).toContain('ON CONFLICT (isbn) DO NOTHING');
-    expect(query.mock.calls[1][1]).toEqual(['Livre trouvé', 'A, B', '9782070612758']);
+    expect(create).toHaveBeenCalledWith({ data: { titre: 'Livre trouvé', auteur: 'A, B', isbn: '9782070612758' }, select: { id: true } });
   });
 
   it('scan : un ajout concurrent réutilise l’identifiant enregistré sans écraser le livre', async () => {
-    query.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [{ id: 8, titre: 'Concurrent', auteur: 'Auteur' }] });
+    query.mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: 8, titre: 'Concurrent', auteur: 'Auteur' }]);
+    create.mockRejectedValue({ code: 'P2002' });
     execute.mockResolvedValue({ stdout: '{"title":"Autre titre","authors":["Autre auteur"]}' });
     expect(await new IsbnService(database).scan('9782070612758')).toEqual({ id: 8, title: 'Concurrent', authors: ['Auteur'] });
   });
@@ -145,6 +145,7 @@ describe('Recherche ISBN', () => {
     execute.mockRejectedValue({ code: 1, stdout: '{"error":"Aucun livre trouvé"}' });
     await expect(new IsbnService(database).scan('9782070612758')).rejects.toMatchObject({ status: 404 });
     expect(query).toHaveBeenCalledTimes(1);
+    expect(create).not.toHaveBeenCalled();
   });
 
   it.each([{ title: null, authors: [] }, { title: 'x'.repeat(256), authors: ['Auteur'] }])(
@@ -152,6 +153,7 @@ describe('Recherche ISBN', () => {
       execute.mockResolvedValue({ stdout: JSON.stringify(result) });
       await expect(new IsbnService(database).scan('9782070612758')).rejects.toMatchObject({ status: 422 });
       expect(query).toHaveBeenCalledTimes(1);
+    expect(create).not.toHaveBeenCalled();
     },
   );
 

@@ -1,63 +1,37 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Pool } from 'pg';
-import type { QueryResultRow } from 'pg';
-
-export interface Livre {
-  id: number;
-  titre: string;
-  auteur: string;
-  isbn: string | null;
-}
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from './generated/prisma/client.js';
 
 @Injectable()
-export class DatabaseService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(DatabaseService.name);
-  private readonly pool = new Pool({ connectionTimeoutMillis: 5000 });
-
+export class DatabaseService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor() {
-    this.pool.on('error', (error) => {
-      this.logger.error('Erreur PostgreSQL', error.stack);
-    });
+    const logger = new Logger(DatabaseService.name);
+    super({ adapter: new PrismaPg({
+      // Sans DATABASE_URL, pg utilise les variables PG* existantes du Compose.
+      connectionString: process.env.DATABASE_URL || undefined,
+      connectionTimeoutMillis: 5000,
+      statement_timeout: 5000,
+    }, { onPoolError: () => logger.error('Erreur de connexion PostgreSQL') }) });
   }
 
   async onModuleInit(): Promise<void> {
-    await this.pool.query('SELECT 1');
-  }
-
-  query<T extends QueryResultRow = QueryResultRow>(
-    sql: string,
-    values: unknown[] = [],
-  ) {
-    return this.pool.query<T>(sql, values);
+    await this.$connect();
+    await this.checkHealth();
   }
 
   async checkHealth(): Promise<void> {
-    // L'acquisition est déjà limitée à 5 s par connectionTimeoutMillis.
-    const client = await this.pool.connect();
-    let failed = false;
-    try {
-      const healthQuery = { text: 'SELECT 1', query_timeout: 2000 };
-      await client.query(healthQuery);
-    } catch (error) {
-      failed = true;
-      throw error;
-    } finally {
-      // Détruire une connexion défaillante, notamment après un délai dépassé.
-      client.release(failed);
-    }
+    await this.$transaction(async (tx) => {
+      await tx.$executeRaw`SET LOCAL statement_timeout = '2s'`;
+      await tx.$queryRaw`SELECT 1`;
+    }, { maxWait: 5000, timeout: 3000 });
   }
 
-  async trouverLivre(id: number): Promise<Livre | null> {
-    const result = await this.pool.query<Livre>(
-      'SELECT id, titre, auteur, isbn FROM livres WHERE id = $1',
-      [id],
-    );
-
-    return result.rows[0] ?? null;
+  trouverLivre(id: number) {
+    return this.livres.findUnique({ where: { id }, select: { id: true, titre: true, auteur: true, isbn: true } });
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.pool.end();
+    await this.$disconnect();
   }
 }

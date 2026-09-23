@@ -14,14 +14,19 @@ await test('Connexion et révocation par cookie HttpOnly', async () => {
   const hash = await hashPassword(password);
   const module = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(DatabaseService).useValue({
-      query: async (sql, values) => {
-        if (sql.startsWith('INSERT INTO sessions')) sessions.set(values[0], true);
-        if (sql.startsWith('SELECT id FROM sessions')) return { rows: sessions.get(values[0]) ? [{ id: values[0] }] : [] };
-        if (sql.startsWith('UPDATE sessions')) {
-          if (typeof values[0] === 'number') sessions.clear();
-          else sessions.delete(values[0]);
-        }
-        return { rows: [] };
+      livres: { findMany: async () => [] },
+      sessions: {
+        create: async ({ data }) => { sessions.set(data.id, data); return data; },
+        findFirst: async ({ where }) => {
+          const session = sessions.get(where.id);
+          return session && session.utilisateur_id === where.utilisateur_id && !session.revoked_at && session.expires_at > where.expires_at.gt ? session : null;
+        },
+        updateMany: async ({ where, data }) => {
+          for (const [id, session] of sessions) {
+            if (session.utilisateur_id === where.utilisateur_id && (!where.id || where.id === id)) Object.assign(session, data);
+          }
+          return { count: 1 };
+        },
       },
     })
     .overrideProvider(UsersService).useValue({

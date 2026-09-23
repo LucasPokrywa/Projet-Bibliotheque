@@ -2,10 +2,13 @@ FROM node:26-alpine3.23 AS build
 
 WORKDIR /api
 
+RUN apk add --no-cache openssl
+
 COPY package*.json ./
 RUN npm ci
 
 COPY . .
+# Génère le client Prisma puis compile NestJS, sans connexion à la base.
 RUN npm run build
 
 FROM node:26-alpine3.23 AS production

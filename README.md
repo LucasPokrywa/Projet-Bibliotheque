@@ -18,9 +18,9 @@ planification quotidienne et test mensuel de restauration : [procédure](ops/BAC
 
 ## Déploiement HTTPS
 
-Sur le VPS, renseigner `API_DOMAIN` puis lancer `./start.sh --production` pour
+Sur le VPS, renseigner `API_DOMAIN` et `FRONT_DOMAIN` puis lancer `./start.sh --production` pour
 activer Caddy et HTTPS automatique : [procédure](ops/HTTPS.md).
-Le démarrage local reste `./start.sh`.
+Le démarrage local reste `./start.sh` ; le frontend compilé est servi sur `http://localhost:4321`.
 
 ## Authentification par cookie
 

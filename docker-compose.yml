@@ -53,5 +53,18 @@ services:
     init: true
     restart: unless-stopped
 
+  front:
+    build:
+      context: ./front
+    ports:
+      - "${FRONT_PORT:-4321}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
 volumes:
   postgres_data:

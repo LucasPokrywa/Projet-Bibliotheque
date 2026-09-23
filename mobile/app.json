@@ -1,0 +1,7 @@
+{
+  "expo": {
+    "name": "Ma Bibliothèque", "slug": "ma-bibliotheque", "version": "1.0.0", "orientation": "portrait",
+    "ios": {"supportsTablet": true}, "android": {"package": "site.lucaspokrywa.bibliotheque"},
+    "plugins": [["expo-camera", {"cameraPermission": "Autorisez la caméra pour scanner le code-barres ISBN d’un livre.", "recordAudioAndroid": false}]]
+  }
+}

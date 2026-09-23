@@ -1,3 +1,4 @@
+import { BookProofService } from './livres/book-proof.service.js';
 import { CsrfGuard } from './auth/csrf.guard.js';
 import { HealthController } from './v1/health.controller.js';
 import { ProblemDetailsFilter } from './common/problem-details.filter.js';
@@ -36,6 +37,7 @@ import { BibliothequeService } from './bibliotheque/bibliotheque.service.js';
     AuthGuard,
     UsersService,
     LivresService,
+    BookProofService,
     IsbnService,
     BibliothequeService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },

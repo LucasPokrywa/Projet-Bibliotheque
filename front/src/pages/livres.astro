@@ -18,13 +18,13 @@ import Navbar from '../components/Navbar.astro';
 			<p id="recherche-login" hidden><a href="/login">Se connecter</a></p>
 			<form id="ajout-livre" hidden>
 				<fieldset id="ajout-champs">
-					<legend>Vérifiez les informations du livre</legend>
+					<legend>Livre trouvé</legend>
 					<label for="ajout-isbn">ISBN recherché</label>
 					<input id="ajout-isbn" name="isbn" readonly />
 					<label for="ajout-titre">Titre</label>
-					<input id="ajout-titre" name="titre" required maxlength="255" />
+					<input id="ajout-titre" name="titre" readonly />
 					<label for="ajout-auteur">Auteur(s)</label>
-					<input id="ajout-auteur" name="auteur" required maxlength="255" />
+					<input id="ajout-auteur" name="auteur" readonly />
 					<button type="submit">Ajouter au catalogue</button>
 				</fieldset>
 			</form>
@@ -87,7 +87,10 @@ import Navbar from '../components/Navbar.astro';
 			isbn.disabled = true;
 			status.textContent = 'Recherche en cours…';
 			try {
-				const response = await fetch(`${apiUrl}/isbn/${encodeURIComponent(valeur)}`, {
+				const response = await fetch(`${apiUrl}/isbn`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ isbn: valeur }),
 					credentials: 'include', cache: 'no-store',
 				});
 				if (!response.ok) {
@@ -104,7 +107,7 @@ import Navbar from '../components/Navbar.astro';
 				titre.value = livre.title ?? '';
 				auteur.value = livre.authors.join(', ');
 				ajout.hidden = false;
-				status.textContent = 'Vérifiez ou complétez le titre et les auteurs avant l’ajout.';
+				status.textContent = 'Vous pouvez ajouter ce livre au catalogue dans les 10 minutes.';
 			} catch (error) {
 				status.textContent = error instanceof TypeError ? 'Impossible de contacter l’API.'
 					: error instanceof Error ? error.message : 'La recherche a échoué.';
@@ -133,7 +136,7 @@ import Navbar from '../components/Navbar.astro';
 				const response = await fetch(apiUrl, {
 					method: 'POST', credentials: 'include',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(livre),
+					body: JSON.stringify({ isbn: isbnTrouve }),
 				});
 				if (!response.ok) {
 					login.hidden = response.status !== 401;

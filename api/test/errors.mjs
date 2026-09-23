@@ -8,6 +8,8 @@ import { AuthService } from '../dist/auth/auth.service.js';
 import { IsbnService } from '../dist/livres/isbn.service.js';
 import { setupSwagger } from '../dist/swagger.js';
 
+process.env.JWT_SECRET ??= 'test-errors-secret-at-least-32-bytes-long';
+
 await test('Erreurs HTTP standardisées RFC 9457', async (t) => {
   const module = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(DatabaseService)
@@ -146,9 +148,9 @@ await test('Erreurs HTTP standardisées RFC 9457', async (t) => {
           check(
             await call('/v1/livres/isbn', {
               method: 'POST',
-              body: { isbn: '9782070612758' },
+              body: { isbn: 'invalide' },
             }),
-            404,
+            400,
             '/v1/livres/isbn',
           );
           const operation = document.paths['/v1/livres/isbn/{isbn}'].get;
@@ -159,7 +161,7 @@ await test('Erreurs HTTP standardisées RFC 9457', async (t) => {
               (p) => p.name === 'isbn' && p.in === 'path' && p.required,
             ),
           );
-          assert.equal(document.paths['/v1/livres/isbn'], undefined);
+          assert.ok(document.paths['/v1/livres/isbn'].post);
         } finally {
           lookup.lookup = original;
         }

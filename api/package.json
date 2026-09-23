@@ -22,6 +22,7 @@
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "test:integration": "npm run build && node --test test/integration.mjs",
     "test:errors": "npm run build && node --test test/errors.mjs",
+    "test:book-proof": "npm run build && node --test test/book-proof.mjs",
     "test:cookies": "npm run build && node --test test/cookies.mjs"
   },
   "dependencies": {

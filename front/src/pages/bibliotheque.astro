@@ -1,0 +1,73 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+---
+
+<Layout>
+	<Navbar />
+	<main class="bibliotheque-page">
+		<h1>Ma bibliothèque</h1>
+		<p id="bibliotheque-status" role="status">Chargement de vos livres…</p>
+		<p id="bibliotheque-login" hidden><a href="/login">Se connecter</a></p>
+		<ul id="bibliotheque-livres" aria-label="Mes livres" hidden></ul>
+	</main>
+</Layout>
+
+<script>
+	async function chargerBibliotheque() {
+		const status = document.querySelector<HTMLParagraphElement>('#bibliotheque-status');
+		const login = document.querySelector<HTMLParagraphElement>('#bibliotheque-login');
+		const liste = document.querySelector<HTMLUListElement>('#bibliotheque-livres');
+		if (!status || !login || !liste) return;
+
+		try {
+			const response = await fetch('https://api.bibliotheque.lucaspokrywa.site/v1/bibliotheque', {
+				credentials: 'include',
+				cache: 'no-store',
+			});
+			if (response.status === 401) {
+				status.textContent = 'Connectez-vous pour consulter votre bibliothèque.';
+				login.hidden = false;
+				return;
+			}
+			if (!response.ok) throw new Error('Chargement impossible');
+
+			const livres: unknown = await response.json();
+			if (!Array.isArray(livres) || !livres.every((livre) =>
+				livre && typeof livre.titre === 'string' && typeof livre.auteur === 'string'
+			)) throw new Error('Réponse invalide');
+
+			if (livres.length === 0) {
+				status.textContent = 'Votre bibliothèque est vide.';
+				return;
+			}
+
+			liste.replaceChildren(...livres.map((livre) => {
+				const ligne = document.createElement('li');
+				ligne.textContent = `${livre.titre} - ${livre.auteur}`;
+				return ligne;
+			}));
+			liste.hidden = false;
+			status.textContent = '';
+		} catch {
+			status.textContent = 'Impossible de charger vos livres. Réessayez en actualisant la page.';
+		}
+	}
+
+	void chargerBibliotheque();
+</script>
+
+<style>
+	.bibliotheque-page {
+		max-width: 900px;
+		margin: 0 auto;
+		padding: 2rem;
+	}
+
+	#bibliotheque-livres {
+		list-style: none;
+		padding: 0;
+		line-height: 1.8;
+		overflow-wrap: anywhere;
+	}
+</style>

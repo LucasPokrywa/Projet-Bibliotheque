@@ -13,6 +13,13 @@
 			disable_canonical_uris
 		}
 	}
+	@bibliotheque path /bibliotheque /bibliotheque/
+	handle @bibliotheque {
+		rewrite * /bibliotheque/index.html
+		file_server {
+			disable_canonical_uris
+		}
+	}
 	handle {
 		file_server
 	}

@@ -1,0 +1,14 @@
+node_modules
+dist
+.astro
+.git
+.env
+.env.*
+.npmrc
+*.log
+coverage
+.vscode
+.idea
+.DS_Store
+README*
+AGENTS.md

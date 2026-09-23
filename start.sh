@@ -26,4 +26,9 @@ if [[ ! -f api/package.json ]]; then
     exit 1
 fi
 
+if [[ ! -f front/package.json ]]; then
+    echo "Erreur : front/package.json est absent." >&2
+    exit 1
+fi
+
 exec "${compose[@]}" up --build --detach --wait "$@"

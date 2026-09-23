@@ -29,23 +29,14 @@ export class IsbnService {
 
   async lookup(isbn: string): Promise<IsbnResultDto> {
     const normalizedIsbn = isbn.replace(/[\s-]/g, '').toUpperCase();
-    const result = await this.db.query<{ titre: string; auteur: string }>(
-      "SELECT titre, auteur FROM livres WHERE upper(regexp_replace(isbn, '[[:space:]-]', '', 'g')) = $1 ORDER BY id LIMIT 1",
-      [normalizedIsbn],
-    );
-    if (result.rows[0]) {
-      return { title: result.rows[0].titre, authors: [result.rows[0].auteur] };
-    }
+    const book = await this.findStored(normalizedIsbn);
+    if (book) return { title: book.titre, authors: [book.auteur] };
     return this.lookupWithPython(normalizedIsbn);
   }
 
   async scan(isbn: string): Promise<IsbnScanResultDto> {
     const normalized = isbn.replace(/[\s-]/g, '').toUpperCase();
-    const find = () => this.db.query<{ id: number; titre: string; auteur: string }>(
-      "SELECT id, titre, auteur FROM livres WHERE upper(regexp_replace(isbn, '[[:space:]-]', '', 'g')) = $1 ORDER BY id LIMIT 1",
-      [normalized],
-    );
-    const existing = (await find()).rows[0];
+    const existing = await this.findStored(normalized);
     if (existing) return { id: existing.id, title: existing.titre, authors: [existing.auteur] };
 
     const result = await this.lookupWithPython(normalized);
@@ -54,15 +45,27 @@ export class IsbnService {
     if (!titre || !auteur || titre.length > 255 || auteur.length > 255) {
       throw new UnprocessableEntityException('Les informations trouvées sont incomplètes ou trop longues pour le catalogue.');
     }
-    // Deux scans simultanés du même ISBN réutilisent le même livre.
-    const inserted = await this.db.query<{ id: number }>(
-      'INSERT INTO livres (titre, auteur, isbn) VALUES ($1, $2, $3) ON CONFLICT (isbn) DO NOTHING RETURNING id',
-      [titre, auteur, normalized],
-    );
-    if (inserted.rows[0]) return { id: inserted.rows[0].id, title: titre, authors: result.authors };
-    const concurrent = (await find()).rows[0];
-    if (!concurrent) throw new ServiceUnavailableException('Le catalogue a changé pendant la recherche. Réessayez.');
-    return { id: concurrent.id, title: concurrent.titre, authors: [concurrent.auteur] };
+    // Le conflit d'un scan concurrent ne modifie jamais les informations existantes.
+    try {
+      const inserted = await this.db.livres.create({ data: { titre, auteur, isbn: normalized }, select: { id: true } });
+      return { id: inserted.id, title: titre, authors: result.authors };
+    } catch (error) {
+      if ((error as { code?: string }).code !== 'P2002') throw error;
+      const concurrent = await this.findStored(normalized);
+      if (!concurrent) throw new ServiceUnavailableException('Le catalogue a changé pendant la recherche. Réessayez.');
+      return { id: concurrent.id, title: concurrent.titre, authors: [concurrent.auteur] };
+    }
+  }
+
+  private async findStored(isbn: string) {
+    // Prisma ne représente pas regexp_replace : préserver les ISBN historiques avec espaces/tirets.
+    // Le template tag lie l'ISBN comme paramètre SQL, sans concaténation.
+    const books = await this.db.$queryRaw<{ id: number; titre: string; auteur: string }[]>`
+      SELECT id, titre, auteur FROM livres
+      WHERE upper(regexp_replace(isbn, '[[:space:]-]', '', 'g')) = ${isbn}
+      ORDER BY id LIMIT 1
+    `;
+    return books[0];
   }
 
   private async lookupWithPython(isbn: string): Promise<IsbnResultDto> {

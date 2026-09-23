@@ -14,7 +14,7 @@ await test('Erreurs HTTP standardisées RFC 9457', async (t) => {
   const module = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(DatabaseService)
     .useValue({
-      query: async () => ({ rows: [] }),
+      livres: { findMany: async () => [], findUnique: async () => null },
       checkHealth: async () => {},
     })
     .overrideProvider(AuthService)
@@ -221,7 +221,7 @@ await test('Erreurs HTTP standardisées RFC 9457', async (t) => {
           new Error('SELECT secret FROM utilisateurs'),
           new HttpException('mot_de_passe=secret', 500),
         ]) {
-          db.query = async () => {
+          db.livres.findMany = async () => {
             throw error;
           };
           const result = await call('/v1/livres');
@@ -229,7 +229,7 @@ await test('Erreurs HTTP standardisées RFC 9457', async (t) => {
           assert.equal(result.data.detail, 'Une erreur interne est survenue.');
           assert.ok(!JSON.stringify(result.data).includes('secret'));
         }
-        db.query = async () => ({ rows: [] });
+        db.livres.findMany = async () => [];
       },
     );
     await t.test('429 garde Retry-After', async () => {

@@ -26,7 +26,7 @@ Les profils et bibliothèques ne sont pas publics. L’API détermine l’utilis
 | Dossier | Contenu |
 | --- | --- |
 | [`front/`](front/) | Site Astro 7, compilé en fichiers statiques et servi par Caddy |
-| [`api/`](api/) | API NestJS 12 / TypeScript, accès PostgreSQL avec `pg`, routes sous `/v1` |
+| [`api/`](api/) | API NestJS 12 / TypeScript, accès PostgreSQL avec Prisma ORM 7, routes sous `/v1` |
 | [`api/python_script/`](api/python_script/) | Recherche des métadonnées des livres par ISBN |
 | [`bdd/`](bdd/) | PostgreSQL 18, initialisation SQL et migrations |
 | [`mobile/`](mobile/) | Application React Native / Expo |
@@ -122,6 +122,15 @@ Libérer auparavant le port 4321 s’il est occupé par le conteneur frontend.
 `ADMIN_PASSWORD_HASH` attend un hash compatible avec l’API, pas un mot de passe
 en clair. Le champ `permission` vaut `0` pour un utilisateur et `1` pour un admin.
 Les scripts d’initialisation PostgreSQL ne sont exécutés que sur un volume vide.
+
+## Accès PostgreSQL avec Prisma
+
+L’API utilise Prisma ORM et son adaptateur PostgreSQL. Le schéma est dans
+[`api/prisma/schema.prisma`](api/prisma/schema.prisma) ; `npm run build --prefix api`
+génère automatiquement le client. Les variables `PG*` de Compose restent valides.
+La migration de l’API ne recrée pas les tables et conserve les données existantes.
+Les migrations SQL de `bdd/` restent la référence pour faire évoluer la base.
+Voir le [guide Prisma de l’API](api/README.md) avant toute modification du schéma.
 
 ## API : parcours principal
 

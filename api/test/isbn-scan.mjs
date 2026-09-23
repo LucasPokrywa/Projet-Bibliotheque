@@ -11,21 +11,19 @@ await test('Scan ISBN, enregistrement automatique et ajout explicite à la bibli
   const library = [];
   let calls = 0;
   const module = await Test.createTestingModule({ imports: [AppModule] })
-    .overrideProvider(DatabaseService).useValue({ query: async (sql, values) => {
-      if (sql.startsWith('SELECT id, titre, auteur FROM livres')) return { rows: books.has(values[0]) ? [books.get(values[0])] : [] };
-      if (sql.startsWith('INSERT INTO livres')) {
-        if (books.has(values[2])) return { rows: [] };
-        const book = { id: books.size + 1, titre: values[0], auteur: values[1], isbn: values[2] };
-        books.set(values[2], book);
-        return { rows: [book] };
-      }
-      if (sql.startsWith('SELECT id FROM livres')) return { rows: [{ id: 1 }] };
-      if (sql.startsWith('INSERT INTO bibliotheque')) {
-        library.push(values);
-        return { rows: [{ id: 1, livre_id: values[1], lu: false }] };
-      }
-      return { rows: [] };
-    } })
+    .overrideProvider(DatabaseService).useValue({
+      $queryRaw: async (_strings, isbn) => books.has(isbn) ? [books.get(isbn)] : [],
+      livres: { create: async ({ data }) => {
+        if (books.has(data.isbn)) throw { code: 'P2002' };
+        const book = { id: books.size + 1, ...data };
+        books.set(data.isbn, book);
+        return book;
+      } },
+      bibliotheque: { create: async ({ data }) => {
+        library.push([data.utilisateur_id, data.livre_id]);
+        return { id: 1, livre_id: data.livre_id, lu: false };
+      } },
+    })
     .overrideProvider(AuthService).useValue({ authenticate: async () => ({ userId: 2, sessionId: 'session' }) }).compile();
   const app = module.createNestApplication();
   app.get(IsbnService).lookupWithPython = async () => { calls++; return { title: 'Livre', authors: ['Auteur'] }; };

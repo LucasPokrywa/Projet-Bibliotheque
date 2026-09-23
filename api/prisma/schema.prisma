@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated/prisma"
+  moduleFormat = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model livres {
+  id Int @id @default(autoincrement())
+  titre String @db.VarChar(255)
+  auteur String @db.VarChar(255)
+  isbn String? @unique @db.VarChar(20)
+  date_publication DateTime? @db.Date
+  bibliotheque bibliotheque[]
+}
+
+// CHECK permission IN (0, 1) et index UNIQUE lower(email) gérés par les SQL de bdd/.
+model utilisateurs {
+  id Int @id @default(autoincrement())
+  pseudo String @db.VarChar(100)
+  email String @unique @db.VarChar(255)
+  mot_de_passe String @db.VarChar(255)
+  permission Int @default(0) @db.SmallInt
+  date_inscription DateTime @default(now()) @db.Timestamp(6)
+  bibliotheque bibliotheque[]
+  sessions sessions[]
+}
+
+model bibliotheque {
+  id Int @id @default(autoincrement())
+  utilisateur_id Int
+  livre_id Int
+  lu Boolean @default(false)
+  utilisateur utilisateurs @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_bibliotheque_utilisateur")
+  livre livres @relation(fields: [livre_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_bibliotheque_livre")
+  @@unique([utilisateur_id, livre_id], map: "bibliotheque_utilisateur_livre_unique")
+}
+
+model sessions {
+  id String @id @db.Uuid
+  utilisateur_id Int
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  expires_at DateTime @db.Timestamptz(6)
+  revoked_at DateTime? @db.Timestamptz(6)
+  utilisateur utilisateurs @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([utilisateur_id], map: "sessions_utilisateur_idx")
+  @@index([expires_at], map: "sessions_expiration_idx")
+}

@@ -1,54 +1,33 @@
-import {
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database.service.js';
 
-export interface User {
-  id: number;
-  pseudo: string;
-  email: string;
-  permission: 0 | 1;
-  date_inscription: Date;
-}
-export interface Credentials extends User {
-  mot_de_passe: string;
-}
+const publicFields = { id: true, pseudo: true, email: true, permission: true, date_inscription: true } as const;
 
 @Injectable()
 export class UsersService {
   constructor(@Inject(DatabaseService) private readonly db: DatabaseService) {}
 
-  async create(pseudo: string, email: string, hash: string): Promise<User> {
+  async create(pseudo: string, email: string, hash: string) {
     try {
-      const result = await this.db.query<User>(
-        'INSERT INTO utilisateurs (pseudo, email, mot_de_passe) VALUES ($1, $2, $3) RETURNING id, pseudo, email, permission, date_inscription',
-        [pseudo, email.trim().toLowerCase(), hash],
-      );
-      return result.rows[0];
+      return await this.db.utilisateurs.create({
+        data: { pseudo, email: email.trim().toLowerCase(), mot_de_passe: hash },
+        select: publicFields,
+      });
     } catch (error) {
-      if ((error as { code?: string }).code === '23505')
-        throw new ConflictException('Adresse email déjà utilisée');
+      if ((error as { code?: string }).code === 'P2002') throw new ConflictException('Adresse email déjà utilisée');
       throw error;
     }
   }
 
-  async findCredentials(email: string): Promise<Credentials | undefined> {
-    const result = await this.db.query<Credentials>(
-      'SELECT id, pseudo, email, permission, date_inscription, mot_de_passe FROM utilisateurs WHERE lower(email) = $1',
-      [email.trim().toLowerCase()],
-    );
-    return result.rows[0];
+  findCredentials(email: string) {
+    // Le mode insensitive utilise ILIKE : les caractères de motif doivent rester littéraux.
+    const literalEmail = email.trim().toLowerCase().replace(/[\\%_]/g, '\\$&');
+    return this.db.utilisateurs.findFirst({ where: { email: { equals: literalEmail, mode: 'insensitive' } } });
   }
 
-  async findById(id: number): Promise<User> {
-    const result = await this.db.query<User>(
-      'SELECT id, pseudo, email, permission, date_inscription FROM utilisateurs WHERE id = $1',
-      [id],
-    );
-    if (!result.rows[0]) throw new NotFoundException('Utilisateur introuvable');
-    return result.rows[0];
+  async findById(id: number) {
+    const user = await this.db.utilisateurs.findUnique({ where: { id }, select: publicFields });
+    if (!user) throw new NotFoundException('Utilisateur introuvable');
+    return user;
   }
 }

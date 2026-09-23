@@ -56,10 +56,7 @@ export class AuthService {
       .setIssuedAt()
       .setExpirationTime(expires)
       .sign(this.key);
-    await this.db.query(
-      'INSERT INTO sessions (id, utilisateur_id, expires_at) VALUES ($1, $2, $3)',
-      [sessionId, user.id, new Date(expires * 1000)],
-    );
+    await this.db.sessions.create({ data: { id: sessionId, utilisateur_id: user.id, expires_at: new Date(expires * 1000) } });
     return { token, expires_in: TTL };
   }
 
@@ -86,26 +83,19 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Session invalide ou expirée');
     }
-    const result = await this.db.query(
-      'SELECT id FROM sessions WHERE id = $1 AND utilisateur_id = $2 AND expires_at > NOW() AND revoked_at IS NULL',
-      [identity.sessionId, identity.userId],
-    );
-    if (!result.rows.length)
-      throw new UnauthorizedException('Session invalide ou expirée');
+    const session = await this.db.sessions.findFirst({ where: {
+      id: identity.sessionId, utilisateur_id: identity.userId,
+      expires_at: { gt: new Date() }, revoked_at: null,
+    }, select: { id: true } });
+    if (!session) throw new UnauthorizedException('Session invalide ou expirée');
     return identity;
   }
 
   async logout(identity: SessionIdentity): Promise<void> {
-    await this.db.query(
-      'UPDATE sessions SET revoked_at = NOW() WHERE id = $1 AND utilisateur_id = $2',
-      [identity.sessionId, identity.userId],
-    );
+    await this.db.sessions.updateMany({ where: { id: identity.sessionId, utilisateur_id: identity.userId }, data: { revoked_at: new Date() } });
   }
 
   async logoutAll(userId: number): Promise<void> {
-    await this.db.query(
-      'UPDATE sessions SET revoked_at = NOW() WHERE utilisateur_id = $1 AND revoked_at IS NULL',
-      [userId],
-    );
+    await this.db.sessions.updateMany({ where: { utilisateur_id: userId, revoked_at: null }, data: { revoked_at: new Date() } });
   }
 }

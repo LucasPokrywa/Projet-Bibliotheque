@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Ma Bibliothèque",
+    "slug": "ma-bibliotheque",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "site.lucaspokrywa.bibliotheque",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Autorisez la caméra pour scanner le code-barres ISBN d’un livre.",
+          "recordAudioAndroid": false
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d7f83c33-25c2-4a82-8e42-b8fd5d6e070e"
+      }
+    }
+  }
+}

@@ -119,6 +119,42 @@ describe('Recherche ISBN', () => {
     });
   });
 
+  it('scan : réutilise le livre existant sans Python ni insertion', async () => {
+    query.mockResolvedValue({ rows: [{ id: 42, titre: 'Local', auteur: 'Auteur' }] });
+    expect(await new IsbnService(database).scan('978-2-07-061275-8')).toEqual({ id: 42, title: 'Local', authors: ['Auteur'] });
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it('scan : insère uniquement les informations Python et renvoie l’identifiant', async () => {
+    query.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [{ id: 7 }] });
+    execute.mockResolvedValue({ stdout: '{"title":"Livre trouvé","authors":["A","B"]}' });
+    expect(await new IsbnService(database).scan('978-2-07-061275-8')).toEqual({ id: 7, title: 'Livre trouvé', authors: ['A', 'B'] });
+    expect(query.mock.calls[1][0]).toContain('ON CONFLICT (isbn) DO NOTHING');
+    expect(query.mock.calls[1][1]).toEqual(['Livre trouvé', 'A, B', '9782070612758']);
+  });
+
+  it('scan : un ajout concurrent réutilise l’identifiant enregistré sans écraser le livre', async () => {
+    query.mockResolvedValueOnce({ rows: [] }).mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ id: 8, titre: 'Concurrent', auteur: 'Auteur' }] });
+    execute.mockResolvedValue({ stdout: '{"title":"Autre titre","authors":["Autre auteur"]}' });
+    expect(await new IsbnService(database).scan('9782070612758')).toEqual({ id: 8, title: 'Concurrent', authors: ['Auteur'] });
+  });
+
+  it('scan : ne crée pas de livre quand Python échoue', async () => {
+    execute.mockRejectedValue({ code: 1, stdout: '{"error":"Aucun livre trouvé"}' });
+    await expect(new IsbnService(database).scan('9782070612758')).rejects.toMatchObject({ status: 404 });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([{ title: null, authors: [] }, { title: 'x'.repeat(256), authors: ['Auteur'] }])(
+    'scan : refuse les informations inutilisables sans insertion', async (result) => {
+      execute.mockResolvedValue({ stdout: JSON.stringify(result) });
+      await expect(new IsbnService(database).scan('9782070612758')).rejects.toMatchObject({ status: 422 });
+      expect(query).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it('normalise les tirets', async () => {
     const dto = plainToInstance(IsbnDto, { isbn: '978-2-07-061275-8' });
     expect(dto.isbn).toBe('9782070612758');

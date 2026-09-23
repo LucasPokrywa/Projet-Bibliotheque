@@ -51,7 +51,7 @@ import Navbar from '../components/Navbar.astro';
 				required
 			/>
 
-			<p id="error-message" class="error-message"></p>
+			<p id="error-message" class="error-message" role="alert"></p>
 
 			<button type="submit">Créer un compte</button>
 
@@ -64,76 +64,52 @@ import Navbar from '../components/Navbar.astro';
 </Layout>
 
 <script>
+	import { API_URL, authError, getSession } from '../lib/auth';
 	const form = document.querySelector<HTMLFormElement>('#register-form');
-	const errorMessage =
-		document.querySelector<HTMLParagraphElement>('#error-message');
+	const error = document.querySelector<HTMLParagraphElement>('#error-message');
+	const submit = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+	let busy = false;
+	void getSession().then((user) => {
+		if (user && !busy) window.location.replace('/bibliotheque');
+	});
 
 	form?.addEventListener('submit', async (event) => {
 		event.preventDefault();
-
-		const pseudo =
-			document.querySelector<HTMLInputElement>('#pseudo')?.value;
-
-		const email =
-			document.querySelector<HTMLInputElement>('#email')?.value;
-
-		const mot_de_passe =
-			document.querySelector<HTMLInputElement>('#mot_de_passe')?.value;
-
-		const confirmPassword =
-			document.querySelector<HTMLInputElement>('#confirm-password')?.value;
-
-		if (!pseudo || !email || !mot_de_passe || !confirmPassword) {
+		if (busy || !error || !submit) return;
+		error.textContent = '';
+		const data = new FormData(form);
+		const pseudo = String(data.get('pseudo') ?? '').trim();
+		const email = String(data.get('email') ?? '').trim();
+		const mot_de_passe = String(data.get('mot_de_passe') ?? '');
+		const confirmation = document.querySelector<HTMLInputElement>('#confirm-password')?.value;
+		if (!pseudo || !email || !mot_de_passe || !confirmation) {
+			error.textContent = 'Veuillez renseigner tous les champs.';
 			return;
 		}
-
-		if (mot_de_passe !== confirmPassword) {
-			if (errorMessage) {
-				errorMessage.textContent =
-					'Les mots de passe ne correspondent pas.';
-			}
-
+		if (mot_de_passe !== confirmation) {
+			error.textContent = 'Les mots de passe ne correspondent pas.';
 			return;
 		}
-
+		busy = true;
+		submit.disabled = true;
+		submit.textContent = 'Création du compte…';
 		try {
-			const response = await fetch(
-				'https://api.bibliotheque.lucaspokrywa.site/v1/auth/register',
-				{
-					method: 'POST',
-
-					headers: {
-						'Content-Type': 'application/json'
-					},
-
-					body: JSON.stringify({
-						pseudo,
-						email,
-						mot_de_passe
-					})
-				}
-			);
-
+			const response = await fetch(`${API_URL}/auth/register`, {
+				method: 'POST', credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ pseudo, email, mot_de_passe }),
+			});
 			if (!response.ok) {
-				const data = await response.json();
-
-				if (errorMessage) {
-					errorMessage.textContent =
-						data.message ?? "Erreur lors de l'inscription.";
-				}
-
+				error.textContent = await authError(response, 'L’inscription a échoué.');
 				return;
 			}
-
-			window.location.href = '/login';
-
-		} catch (error) {
-			console.error(error);
-
-			if (errorMessage) {
-				errorMessage.textContent =
-					"Impossible de contacter l'API.";
-			}
+			window.location.assign('/login?registered=1');
+		} catch {
+			error.textContent = 'Impossible de contacter le serveur. Vérifiez votre connexion et réessayez.';
+		} finally {
+			busy = false;
+			submit.disabled = false;
+			submit.textContent = 'Créer un compte';
 		}
 	});
 </script>

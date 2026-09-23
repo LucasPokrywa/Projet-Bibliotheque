@@ -1,4 +1,3 @@
-```astro
 ---
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
@@ -29,6 +28,8 @@ import Navbar from '../components/Navbar.astro';
 				required
 			/>
 
+			<p id="login-error" class="error-message" role="alert"></p>
+			<p id="login-notice" role="status"></p>
 			<button type="submit">Se connecter</button>
 
 			<p>
@@ -39,49 +40,65 @@ import Navbar from '../components/Navbar.astro';
 </Layout>
 
 <script>
+	import { API_URL, authError, getSession } from '../lib/auth';
 	const form = document.querySelector<HTMLFormElement>('#login-form');
+	const error = document.querySelector<HTMLParagraphElement>('#login-error');
+	const notice = document.querySelector<HTMLParagraphElement>('#login-notice');
+	const submit = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+	let busy = false;
+
+	if (notice && new URLSearchParams(location.search).get('registered') === '1') {
+		notice.textContent = 'Votre compte a été créé. Vous pouvez vous connecter.';
+	}
+	void getSession().then((user) => {
+		if (user && !busy) window.location.replace('/bibliotheque');
+	});
 
 	form?.addEventListener('submit', async (event) => {
 		event.preventDefault();
-
-		const email = document.querySelector<HTMLInputElement>('#email')?.value;
-		const mot_de_passe = document.querySelector<HTMLInputElement>('#mot_de_passe')?.value;
-
+		if (busy || !error || !submit) return;
+		error.textContent = '';
+		if (notice) notice.textContent = '';
+		const data = new FormData(form);
+		const email = String(data.get('email') ?? '').trim();
+		const mot_de_passe = String(data.get('mot_de_passe') ?? '');
 		if (!email || !mot_de_passe) {
+			error.textContent = 'Renseignez votre email et votre mot de passe.';
 			return;
 		}
-
+		busy = true;
+		submit.disabled = true;
+		submit.textContent = 'Connexion…';
 		try {
-			const response = await fetch(
-				'https://api.bibliotheque.lucaspokrywa.site/v1/auth/login',
-				{
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					credentials: 'include',
-					body: JSON.stringify({
-						email,
-						mot_de_passe
-					})
-				}
-			);
-
+			const response = await fetch(`${API_URL}/auth/login`, {
+				method: 'POST', credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ email, mot_de_passe }),
+			});
 			if (!response.ok) {
-				console.error('Erreur de connexion');
+				error.textContent = await authError(response, 'La connexion a échoué.');
 				return;
 			}
-
-			const data = await response.json();
-
-			console.log(data);
-		} catch (error) {
-			console.error('Impossible de contacter l’API', error);
+			const user = await getSession(true);
+			if (!user) {
+				error.textContent = user === null
+					? 'La session n’a pas été conservée. Vérifiez que votre navigateur autorise les cookies du site.'
+					: 'Impossible de vérifier votre session. Réessayez.';
+				return;
+			}
+			window.location.assign('/bibliotheque');
+		} catch {
+			error.textContent = 'Impossible de contacter le serveur. Vérifiez votre connexion et réessayez.';
+		} finally {
+			busy = false;
+			submit.disabled = false;
+			submit.textContent = 'Se connecter';
 		}
 	});
 </script>
 
 <style>
+	.error-message { color: #b42318; margin: 0; }
 	.login-page {
 		min-height: calc(100vh - 70px);
 		display: flex;
@@ -125,4 +142,3 @@ import Navbar from '../components/Navbar.astro';
 		opacity: 0.8;
 	}
 </style>
-```

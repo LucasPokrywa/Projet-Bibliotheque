@@ -14,6 +14,7 @@ import Navbar from '../components/Navbar.astro';
 </Layout>
 
 <script>
+	const apiUrl = 'https://api.bibliotheque.lucaspokrywa.site/v1/bibliotheque';
 	async function chargerBibliotheque() {
 		const status = document.querySelector<HTMLParagraphElement>('#bibliotheque-status');
 		const login = document.querySelector<HTMLParagraphElement>('#bibliotheque-login');
@@ -21,7 +22,7 @@ import Navbar from '../components/Navbar.astro';
 		if (!status || !login || !liste) return;
 
 		try {
-			const response = await fetch('https://api.bibliotheque.lucaspokrywa.site/v1/bibliotheque', {
+			const response = await fetch(apiUrl, {
 				credentials: 'include',
 				cache: 'no-store',
 			});
@@ -34,7 +35,8 @@ import Navbar from '../components/Navbar.astro';
 
 			const livres: unknown = await response.json();
 			if (!Array.isArray(livres) || !livres.every((livre) =>
-				livre && typeof livre.titre === 'string' && typeof livre.auteur === 'string'
+				livre && Number.isSafeInteger(livre.livre_id) && livre.livre_id > 0 &&
+				typeof livre.lu === 'boolean' && typeof livre.titre === 'string' && typeof livre.auteur === 'string'
 			)) throw new Error('Réponse invalide');
 
 			if (livres.length === 0) {
@@ -44,7 +46,59 @@ import Navbar from '../components/Navbar.astro';
 
 			liste.replaceChildren(...livres.map((livre) => {
 				const ligne = document.createElement('li');
-				ligne.textContent = `${livre.titre} - ${livre.auteur}`;
+				const titre = document.createElement('span');
+				titre.textContent = livre.titre;
+				const auteur = document.createElement('span');
+				auteur.textContent = livre.auteur;
+				const etat = document.createElement('span');
+				etat.className = 'lecture-etat';
+				const bouton = document.createElement('button');
+				bouton.type = 'button';
+				const message = document.createElement('span');
+				message.setAttribute('role', 'status');
+				let lu: boolean = livre.lu;
+				function afficherEtat() {
+					etat.textContent = lu ? 'Lu' : 'Non lu';
+					etat.dataset.lu = String(lu);
+					bouton.textContent = lu ? 'Marquer comme non lu' : 'Marquer comme lu';
+					bouton.setAttribute('aria-label', `${bouton.textContent} : ${livre.titre}`);
+				}
+				afficherEtat();
+				bouton.addEventListener('click', async () => {
+					if (bouton.disabled) return;
+					bouton.disabled = true;
+					bouton.textContent = 'Enregistrement…';
+					message.textContent = '';
+					try {
+						const response = await fetch(`${apiUrl}/${livre.livre_id}`, {
+							method: 'PATCH',
+							credentials: 'include',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ lu: !lu }),
+						});
+						if (response.status === 401) {
+							login.hidden = false;
+							throw new Error('Reconnectez-vous pour modifier l’état de lecture.');
+						}
+						if (response.status === 404) throw new Error('Ce livre n’est plus dans votre bibliothèque. Actualisez la page.');
+						if (response.status === 429) throw new Error('Trop de requêtes. Patientez avant de réessayer.');
+						if (!response.ok) throw new Error('Impossible de modifier l’état de lecture. Réessayez.');
+						const resultat = await response.json();
+						if (!resultat || typeof resultat.lu !== 'boolean' || resultat.livre_id !== livre.livre_id) {
+							throw new Error('Réponse inattendue. Actualisez la page pour vérifier l’état du livre.');
+						}
+						lu = resultat.lu;
+						message.textContent = lu ? 'Livre marqué comme lu.' : 'Livre marqué comme non lu.';
+					} catch (error) {
+						message.textContent = error instanceof TypeError
+							? 'Impossible de confirmer la modification. Actualisez la page pour vérifier l’état du livre.'
+							: error instanceof Error ? error.message : 'La modification a échoué.';
+					} finally {
+						afficherEtat();
+						bouton.disabled = false;
+					}
+				});
+				ligne.append(titre, auteur, etat, bouton, message);
 				return ligne;
 			}));
 			liste.hidden = false;
@@ -64,7 +118,55 @@ import Navbar from '../components/Navbar.astro';
 		padding: 2rem;
 	}
 
+	#bibliotheque-livres :global(li + li) {
+		border-top: 1px solid #ddd;
+	}
+
+	#bibliotheque-livres :global(li) {
+		display: grid;
+		grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) 4.5rem 13rem;
+		align-items: center;
+		gap: 0.5rem 1.5rem;
+		min-width: 700px;
+		padding: 0.75rem 0;
+	}
+
+	#bibliotheque-livres :global(.lecture-etat) {
+		justify-self: start;
+		white-space: nowrap;
+		padding: 0.1rem 0.6rem;
+		border-radius: 1rem;
+		background: #eee;
+		color: #333;
+		font-size: 0.9rem;
+	}
+
+	#bibliotheque-livres :global(.lecture-etat[data-lu="true"]) {
+		background: #e0f2e5;
+		color: #215b32;
+	}
+
+	#bibliotheque-livres :global(button) {
+		width: 100%;
+		margin: 0;
+		padding: 0.4rem 0.75rem;
+		cursor: pointer;
+	}
+
+	#bibliotheque-livres :global(button:disabled) {
+		cursor: wait;
+	}
+
+	#bibliotheque-livres :global([role="status"]:not(:empty)) {
+		grid-column: 1 / -1;
+	}
+
+	#bibliotheque-livres :global([role="status"]:empty) {
+		display: none;
+	}
+
 	#bibliotheque-livres {
+		overflow-x: auto;
 		list-style: none;
 		padding: 0;
 		line-height: 1.8;

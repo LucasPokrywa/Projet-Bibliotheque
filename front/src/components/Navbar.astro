@@ -3,8 +3,26 @@
     <a href="/">Accueil</a>
     <a href="/bibliotheque">Ma bibliothèque</a>
     <a href="/livres">Livres</a>
-    <a href="/login">Login</a>
+    <a id="nav-login" href="/login" hidden>Connexion</a>
+    <a id="nav-session" href="/profil" hidden>Mon profil</a>
 </nav>
+
+<script>
+    import { getSession, profileUrl } from '../lib/auth';
+    async function afficherSession(refresh = false) {
+        const link = document.querySelector<HTMLAnchorElement>('#nav-login');
+        const status = document.querySelector<HTMLAnchorElement>('#nav-session');
+        if (!link || !status) return;
+        const user = await getSession(refresh);
+        link.hidden = Boolean(user);
+        status.hidden = !user;
+        if (user) status.href = profileUrl(user.pseudo);
+    }
+    void afficherSession();
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) void afficherSession(true);
+    });
+</script>
 
 <style>
     .navbar {

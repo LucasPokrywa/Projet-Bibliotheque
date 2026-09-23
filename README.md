@@ -59,29 +59,19 @@ Si le navigateur bloque les cookies tiers, `SameSite=None` ne suffit pas :
 servir le frontend et l'API sur le même site (même protocole et même domaine
 enregistrable, sous-domaines possibles), ou utiliser un proxy du frontend vers l'API.
 
-## Ajout au catalogue avec preuve signée
+## Scan ISBN et ajout automatique au catalogue
 
-1. Se connecter, puis appeler `POST /v1/livres/isbn` avec `{ "isbn": "9791035805340" }`.
-   Le serveur consulte la base puis le script Python si nécessaire. La réponse
-   reste `{ "title": "…", "authors": ["…"] }`. Un cookie `bibliotheque_book`
-   HttpOnly contient les informations signées, avec une durée de 10 minutes.
-2. Confirmer avec `POST /v1/livres` et le même `{ "isbn": "9791035805340" }`.
-   Le navigateur transmet les cookies avec `credentials: 'include'`.
-   Le serveur vérifie signature, expiration, audience, utilisateur, session et
-   correspondance ISBN, puis insère uniquement les données signées.
+`POST /v1/livres/isbn` avec `{ "isbn": "9791035805340" }` réutilise le livre
+présent en base ou recherche ses informations avec Python et les enregistre
+automatiquement. La réponse est `{ "id": 123, "title": "…", "authors": ["…"] }`.
+Les scans simultanés du même ISBN normalisé réutilisent le même identifiant.
+Seul l’ISBN est accepté du client : titre et auteur viennent des sources serveur.
+Les informations incomplètes ou trop longues sont refusées (`422`) sans insertion.
 
-Le titre et l'auteur envoyés dans le corps sont désormais refusés (`400`).
-Une preuve absente, altérée, expirée ou liée à une autre session/ISBN produit
-une erreur `403` au format Problem Details. Une session invalide produit `401`.
-Les informations incomplètes ou trop longues ne produisent pas de preuve (`422`).
-Un ISBN déjà enregistré produit `409`.
+Le frontend propose ensuite « Ajouter à ma bibliothèque », qui appelle
+`POST /v1/bibliotheque` avec `{ "livre_id": 123 }`. Cette action reste explicite.
+Les deux requêtes nécessitent la session et `credentials: 'include'`.
 
-Une seule recherche est conservée par navigateur : une autre recherche remplace
-le cookie. Le corps ISBN évite de confirmer par erreur un autre livre depuis un
-second onglet. Le cookie est effacé après l'ajout ; une copie du JWT reste
-cryptographiquement valide jusqu'à expiration, mais la contrainte ISBN unique
-empêche un second ajout du même ISBN. Le JWT est signé, pas chiffré.
-
-`GET /v1/livres/isbn/:isbn` reste une consultation sans génération de preuve.
-Le frontend affiche les données en lecture seule avant confirmation. Le dossier
-`api/python_script` reste inchangé.
+La confirmation manuelle `POST /v1/livres` et le cookie JWT du livre sont supprimés.
+`GET /v1/livres/isbn/:isbn` reste une consultation sans écriture en base.
+Le dossier `api/python_script` est inchangé.

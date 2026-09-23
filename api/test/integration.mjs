@@ -25,17 +25,16 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
   try {
     await app.listen(0, '127.0.0.1');
     const url = await app.getUrl();
-    async function call(path, method = 'GET', body, token, proof = '') {
+    async function call(path, method = 'GET', body, token) {
       const response = await fetch(`${url}${path}`, {
         method,
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Cookie: `bibliotheque_session=${token}; ${proof}` } : {}),
+          ...(token ? { Cookie: `bibliotheque_session=${token}` } : {}),
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       });
       return {
-        proof: response.headers.getSetCookie().findLast((value) => value.startsWith('bibliotheque_book=') && value.includes('Max-Age='))?.split(';')[0],
         token: response.headers.getSetCookie()[0]?.split(";")[0].split("=")[1],
         status: response.status,
         body: response.status === 204 ? null : await response.json(),
@@ -213,30 +212,20 @@ await test('Authentification, sessions et bibliothèque avec PostgreSQL', async 
         isbn: prefix + check,
         date_publication: '2026-01-01',
       };
-      assert.equal(
-        (
-          await call(
-            '/v1/livres',
-            'POST',
-            { ...book, date_publication: '2026-02-30' },
-            tokenA,
-          )
-        ).status,
-        400,
-      );
+      assert.equal((await call('/v1/livres/isbn', 'POST', book, tokenA)).status, 400);
       const lookup = app.get(IsbnService);
-      const originalLookup = lookup.lookup.bind(lookup);
-      let prepared;
+      const originalLookup = lookup.lookupWithPython.bind(lookup);
+      let created;
       try {
-        lookup.lookup = async () => ({ title: book.titre, authors: [book.auteur] });
-        prepared = await call('/v1/livres/isbn', 'POST', { isbn: book.isbn }, tokenA);
-      } finally { lookup.lookup = originalLookup; }
-      assert.equal(prepared.status, 200);
-      assert.equal((await call('/v1/livres', 'POST', { isbn: book.isbn }, tokenA)).status, 403);
-      const created = await call('/v1/livres', 'POST', { isbn: book.isbn }, tokenA, prepared.proof);
-      assert.equal(created.status, 201);
+        lookup.lookupWithPython = async () => ({ title: book.titre, authors: [book.auteur] });
+        created = await call('/v1/livres/isbn', 'POST', { isbn: book.isbn }, tokenA);
+      } finally { lookup.lookupWithPython = originalLookup; }
+      assert.equal(created.status, 200);
       bookId = created.body.id;
-      assert.equal((await call('/v1/livres', 'POST', { isbn: book.isbn }, tokenA, prepared.proof)).status, 409);
+      const repeated = await call('/v1/livres/isbn', 'POST', { isbn: book.isbn }, tokenA);
+      assert.equal(repeated.status, 200);
+      assert.equal(repeated.body.id, bookId);
+      assert.equal((await call('/v1/livres', 'POST', { isbn: book.isbn }, tokenA)).status, 404);
       assert.equal(
         (await call(`/v1/livres/${bookId}`, 'GET', undefined, tokenA)).status,
         200,

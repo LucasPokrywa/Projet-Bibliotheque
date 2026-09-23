@@ -26,3 +26,8 @@ export class IsbnResultDto {
   @ApiProperty({ type: [String], example: ['Antoine de Saint-Exupéry'] })
   authors: string[];
 }
+
+export class IsbnScanResultDto extends IsbnResultDto {
+  @ApiProperty({ type: Number, example: 1, description: 'Identifiant du livre enregistré, à transmettre comme livre_id pour l’ajout à la bibliothèque.' })
+  id: number;
+}

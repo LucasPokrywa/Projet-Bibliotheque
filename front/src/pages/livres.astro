@@ -25,7 +25,7 @@ import Navbar from '../components/Navbar.astro';
 					<input id="ajout-titre" name="titre" readonly />
 					<label for="ajout-auteur">Auteur(s)</label>
 					<input id="ajout-auteur" name="auteur" readonly />
-					<button type="submit">Ajouter au catalogue</button>
+					<button type="submit">Ajouter à ma bibliothèque</button>
 				</fieldset>
 			</form>
 		</section>
@@ -63,11 +63,11 @@ import Navbar from '../components/Navbar.astro';
 		const auteur = document.querySelector<HTMLInputElement>('#ajout-auteur');
 		if (!recherche || !isbn || !bouton || !status || !login || !ajout || !champs || !isbnAjout || !titre || !auteur) return;
 		let enCours = false;
-		let isbnTrouve = '';
+		let livreId: number | undefined;
 
 		isbn.addEventListener('input', () => {
 			ajout.hidden = true;
-			isbnTrouve = '';
+			livreId = undefined;
 			status.textContent = '';
 		});
 
@@ -76,7 +76,7 @@ import Navbar from '../components/Navbar.astro';
 			if (enCours) return;
 			const valeur = isbn.value.replace(/[\s-]/g, '').toUpperCase();
 			ajout.hidden = true;
-			isbnTrouve = '';
+			livreId = undefined;
 			login.hidden = true;
 			if (!/^(?:[0-9]{13}|[0-9]{9}[0-9X])$/.test(valeur)) {
 				status.textContent = 'Saisissez un ISBN de 10 ou 13 caractères.';
@@ -98,16 +98,18 @@ import Navbar from '../components/Navbar.astro';
 					throw new Error(await messageErreur(response));
 				}
 				const livre = await response.json();
-				if (!livre || !(livre.title === null || typeof livre.title === 'string') ||
+				if (!livre || !Number.isSafeInteger(livre.id) || livre.id <= 0 || !(livre.title === null || typeof livre.title === 'string') ||
 					!Array.isArray(livre.authors) || !livre.authors.every((nom: unknown) => typeof nom === 'string')) {
 					throw new Error('Le résultat de la recherche est invalide.');
 				}
-				isbnTrouve = valeur;
+				livreId = livre.id;
+				champs.disabled = false;
 				isbnAjout.value = valeur;
 				titre.value = livre.title ?? '';
 				auteur.value = livre.authors.join(', ');
 				ajout.hidden = false;
-				status.textContent = 'Vous pouvez ajouter ce livre au catalogue dans les 10 minutes.';
+				status.textContent = 'Ce livre est enregistré au catalogue. Vous pouvez l’ajouter à votre bibliothèque.';
+				await chargerLivres();
 			} catch (error) {
 				status.textContent = error instanceof TypeError ? 'Impossible de contacter l’API.'
 					: error instanceof Error ? error.message : 'La recherche a échoué.';
@@ -120,12 +122,7 @@ import Navbar from '../components/Navbar.astro';
 
 		ajout.addEventListener('submit', async (event) => {
 			event.preventDefault();
-			if (enCours || !isbnTrouve) return;
-			const livre = { isbn: isbnTrouve, titre: titre.value.trim(), auteur: auteur.value.trim() };
-			if (!livre.titre || !livre.auteur || livre.titre.length > 255 || livre.auteur.length > 255) {
-				status.textContent = 'Le titre et les auteurs doivent contenir entre 1 et 255 caractères chacun.';
-				return;
-			}
+			if (enCours || !livreId) return;
 			enCours = true;
 			champs.disabled = true;
 			bouton.disabled = true;
@@ -133,25 +130,26 @@ import Navbar from '../components/Navbar.astro';
 			login.hidden = true;
 			status.textContent = 'Ajout en cours…';
 			try {
-				const response = await fetch(apiUrl, {
+				const response = await fetch(bibliothequeUrl, {
 					method: 'POST', credentials: 'include',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ isbn: isbnTrouve }),
+					body: JSON.stringify({ livre_id: livreId }),
 				});
-				if (!response.ok) {
+				if (!response.ok && response.status !== 409) {
 					login.hidden = response.status !== 401;
+					if (response.status === 404) throw new Error('Ce livre n’est plus disponible. Relancez la recherche.');
 					throw new Error(await messageErreur(response));
 				}
-				ajout.hidden = true;
-				isbnTrouve = '';
-				status.textContent = `${livre.titre} - ${livre.auteur} : ajouté au catalogue.`;
-				await chargerLivres();
+				livreId = undefined;
+				status.textContent = response.status === 409
+					? 'Ce livre est déjà dans votre bibliothèque.'
+					: 'Livre ajouté à votre bibliothèque.';
 			} catch (error) {
-				status.textContent = error instanceof TypeError ? 'Impossible de confirmer l’ajout. Vérifiez le catalogue avant de réessayer.'
+				status.textContent = error instanceof TypeError ? 'Impossible de confirmer l’ajout. Vérifiez votre bibliothèque avant de réessayer.'
 					: error instanceof Error ? error.message : 'L’ajout a échoué.';
 			} finally {
 				enCours = false;
-				champs.disabled = false;
+				champs.disabled = !livreId;
 				bouton.disabled = false;
 				isbn.disabled = false;
 			}
@@ -194,7 +192,9 @@ import Navbar from '../components/Navbar.astro';
 			liste.replaceChildren(...livres.map((livre) => {
 				const ligne = document.createElement('li');
 				const titre = document.createElement('span');
-				titre.textContent = `${livre.titre} - ${livre.auteur}`;
+				titre.textContent = livre.titre;
+				const auteur = document.createElement('span');
+				auteur.textContent = livre.auteur;
 				const bouton = document.createElement('button');
 				bouton.type = 'button';
 				bouton.textContent = 'Ajouter à ma bibliothèque';
@@ -235,7 +235,7 @@ import Navbar from '../components/Navbar.astro';
 						bouton.setAttribute('aria-label', `${bouton.textContent} : ${livre.titre}`);
 					}
 				});
-				ligne.append(titre, bouton, message);
+				ligne.append(titre, auteur, bouton, message);
 				return ligne;
 			}));
 			liste.hidden = false;
@@ -284,15 +284,22 @@ import Navbar from '../components/Navbar.astro';
 		cursor: wait;
 	}
 
+	#livres-liste :global(li + li) {
+		border-top: 1px solid #ddd;
+	}
+
 	#livres-liste :global(li) {
-		display: flex;
+		display: grid;
+		grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) 15rem;
 		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.5rem 1rem;
-		padding: 0.5rem 0;
+		gap: 0.5rem 1.5rem;
+		min-width: 620px;
+		padding: 0.75rem 0;
 	}
 
 	#livres-liste :global(button) {
+		width: 100%;
+		margin: 0;
 		padding: 0.4rem 0.75rem;
 		cursor: pointer;
 	}
@@ -302,10 +309,15 @@ import Navbar from '../components/Navbar.astro';
 	}
 
 	#livres-liste :global([role="status"]:not(:empty)) {
-		flex-basis: 100%;
+		grid-column: 1 / -1;
+	}
+
+	#livres-liste :global([role="status"]:empty) {
+		display: none;
 	}
 
 	#livres-liste {
+		overflow-x: auto;
 		list-style: none;
 		padding: 0;
 		line-height: 1.8;

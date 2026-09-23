@@ -1,6 +1,7 @@
 import { DatabaseService } from '../database.service.js';
 import {
   BadGatewayException,
+  UnprocessableEntityException,
   GatewayTimeoutException,
   HttpException,
   HttpStatus,
@@ -12,7 +13,7 @@ import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
-import type { IsbnResultDto } from './isbn.dto.js';
+import type { IsbnResultDto, IsbnScanResultDto } from './isbn.dto.js';
 
 const execute = promisify(execFile);
 // Fonctionne depuis src/ en développement et dist/ dans l'image Docker.
@@ -36,6 +37,32 @@ export class IsbnService {
       return { title: result.rows[0].titre, authors: [result.rows[0].auteur] };
     }
     return this.lookupWithPython(normalizedIsbn);
+  }
+
+  async scan(isbn: string): Promise<IsbnScanResultDto> {
+    const normalized = isbn.replace(/[\s-]/g, '').toUpperCase();
+    const find = () => this.db.query<{ id: number; titre: string; auteur: string }>(
+      "SELECT id, titre, auteur FROM livres WHERE upper(regexp_replace(isbn, '[[:space:]-]', '', 'g')) = $1 ORDER BY id LIMIT 1",
+      [normalized],
+    );
+    const existing = (await find()).rows[0];
+    if (existing) return { id: existing.id, title: existing.titre, authors: [existing.auteur] };
+
+    const result = await this.lookupWithPython(normalized);
+    const titre = result.title?.trim() ?? '';
+    const auteur = result.authors.join(', ').trim();
+    if (!titre || !auteur || titre.length > 255 || auteur.length > 255) {
+      throw new UnprocessableEntityException('Les informations trouvées sont incomplètes ou trop longues pour le catalogue.');
+    }
+    // Deux scans simultanés du même ISBN réutilisent le même livre.
+    const inserted = await this.db.query<{ id: number }>(
+      'INSERT INTO livres (titre, auteur, isbn) VALUES ($1, $2, $3) ON CONFLICT (isbn) DO NOTHING RETURNING id',
+      [titre, auteur, normalized],
+    );
+    if (inserted.rows[0]) return { id: inserted.rows[0].id, title: titre, authors: result.authors };
+    const concurrent = (await find()).rows[0];
+    if (!concurrent) throw new ServiceUnavailableException('Le catalogue a changé pendant la recherche. Réessayez.');
+    return { id: concurrent.id, title: concurrent.titre, authors: [concurrent.auteur] };
   }
 
   private async lookupWithPython(isbn: string): Promise<IsbnResultDto> {

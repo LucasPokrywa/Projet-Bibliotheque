@@ -1,0 +1,68 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Navbar from '../../components/Navbar.astro';
+---
+
+<Layout>
+  <Navbar />
+  <main class="profil-page">
+    <h1>Mon profil</h1>
+    <p id="profil-status" role="status">Chargement de votre profil…</p>
+    <p id="profil-login" hidden><a href="/login">Se connecter</a></p>
+    <dl id="profil-details" hidden>
+      <dt>Pseudo</dt>
+      <dd id="profil-pseudo"></dd>
+      <dt>Email</dt>
+      <dd id="profil-email"></dd>
+      <dt>Date d’inscription</dt>
+      <dd id="profil-date"></dd>
+    </dl>
+  </main>
+</Layout>
+
+<script>
+  import { getSession, profileUrl } from '../../lib/auth';
+
+  async function chargerProfil(refresh = false) {
+    const status = document.querySelector<HTMLParagraphElement>('#profil-status');
+    const login = document.querySelector<HTMLParagraphElement>('#profil-login');
+    const details = document.querySelector<HTMLDListElement>('#profil-details');
+    const pseudo = document.querySelector<HTMLElement>('#profil-pseudo');
+    const email = document.querySelector<HTMLElement>('#profil-email');
+    const date = document.querySelector<HTMLElement>('#profil-date');
+    if (!status || !login || !details || !pseudo || !email || !date) return;
+    details.hidden = true;
+    login.hidden = true;
+    status.textContent = 'Chargement de votre profil…';
+    const user = await getSession(refresh);
+    if (user === null) {
+      status.textContent = 'Connectez-vous pour consulter votre profil.';
+      login.hidden = false;
+      return;
+    }
+    if (!user) {
+      status.textContent = 'Impossible de charger votre profil. Réessayez en actualisant la page.';
+      return;
+    }
+    // L’API fournit uniquement le compte connecté, pas un profil public par pseudo.
+    const url = profileUrl(user.pseudo);
+    if (window.location.pathname !== url) window.history.replaceState(null, '', url);
+    pseudo.textContent = user.pseudo;
+    email.textContent = typeof user.email === 'string' ? user.email : 'Non renseigné';
+    const inscription = new Date(user.date_inscription ?? '');
+    date.textContent = Number.isNaN(inscription.getTime()) ? 'Non renseignée'
+      : inscription.toLocaleDateString('fr-FR');
+    details.hidden = false;
+    status.textContent = '';
+  }
+  void chargerProfil();
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) void chargerProfil(true);
+  });
+</script>
+
+<style>
+  .profil-page { max-width: 900px; margin: 0 auto; padding: 2rem; }
+  dt { font-weight: 600; margin-top: 1rem; }
+  dd { margin: 0.25rem 0 0; overflow-wrap: anywhere; }
+</style>

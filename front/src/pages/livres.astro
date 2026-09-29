@@ -5,10 +5,10 @@ import Navbar from '../components/Navbar.astro';
 
 <Layout>
 	<Navbar />
-	<main class="livres-page">
-		<h1>Livres disponibles</h1>
+	<main id="contenu" class="livres-page">
+		<header class="page-heading"><p class="eyebrow">Le catalogue</p><h1>À chaque livre,<br />une nouvelle histoire.</h1><p class="intro">Parcourez les livres disponibles ou retrouvez un titre grâce à son ISBN.</p></header>
 		<section aria-labelledby="recherche-titre">
-			<h2 id="recherche-titre">Rechercher et ajouter un livre</h2>
+			<h2 id="recherche-titre">Un livre en tête ?</h2><p class="intro">Saisissez son ISBN pour le retrouver et l’ajouter à votre bibliothèque.</p>
 			<form id="recherche-livre">
 				<label for="recherche-isbn">ISBN</label>
 				<input id="recherche-isbn" name="isbn" type="text" required maxlength="32" placeholder="9782070612758" />
@@ -31,6 +31,7 @@ import Navbar from '../components/Navbar.astro';
 				</fieldset>
 			</form>
 		</section>
+		<h2>Livres disponibles</h2>
 		<p id="livres-status" role="status">Chargement des livres…</p>
 		<p id="livres-login" hidden><a href="/login">Se connecter</a></p>
 		<ul id="livres-liste" aria-label="Livres disponibles" hidden></ul>
@@ -250,89 +251,3 @@ import Navbar from '../components/Navbar.astro';
 	initialiserRecherche();
 	void chargerLivres();
 </script>
-
-<style>
-	.livre-resultat dt {
-		font-weight: 600;
-		margin-top: 0.75rem;
-	}
-
-	.livre-resultat dd {
-		margin: 0.25rem 0 0;
-		overflow-wrap: anywhere;
-	}
-
-	.livres-page {
-		max-width: 900px;
-		margin: 0 auto;
-		padding: 2rem;
-	}
-
-	section {
-		margin-bottom: 2rem;
-	}
-
-	form, fieldset {
-		max-width: 480px;
-	}
-
-	label, input, button {
-		display: block;
-		margin-top: 0.75rem;
-	}
-
-	input {
-		box-sizing: border-box;
-		width: 100%;
-		padding: 0.6rem;
-	}
-
-	button {
-		padding: 0.6rem 1rem;
-		cursor: pointer;
-	}
-
-	button:disabled {
-		cursor: wait;
-	}
-
-	#livres-liste :global(li + li) {
-		border-top: 1px solid #ddd;
-	}
-
-	#livres-liste :global(li) {
-		display: grid;
-		grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) 15rem;
-		align-items: center;
-		gap: 0.5rem 1.5rem;
-		min-width: 620px;
-		padding: 0.75rem 0;
-	}
-
-	#livres-liste :global(button) {
-		width: 100%;
-		margin: 0;
-		padding: 0.4rem 0.75rem;
-		cursor: pointer;
-	}
-
-	#livres-liste :global(button:disabled) {
-		cursor: default;
-	}
-
-	#livres-liste :global([role="status"]:not(:empty)) {
-		grid-column: 1 / -1;
-	}
-
-	#livres-liste :global([role="status"]:empty) {
-		display: none;
-	}
-
-	#livres-liste {
-		overflow-x: auto;
-		list-style: none;
-		padding: 0;
-		line-height: 1.8;
-		overflow-wrap: anywhere;
-	}
-</style>

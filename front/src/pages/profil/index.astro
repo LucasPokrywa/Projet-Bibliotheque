@@ -5,8 +5,8 @@ import Navbar from '../../components/Navbar.astro';
 
 <Layout>
   <Navbar />
-  <main class="profil-page">
-    <h1>Mon profil</h1>
+  <main id="contenu" class="profil-page">
+    <header class="page-heading"><p class="eyebrow">Votre espace personnel</p><h1>Mon profil</h1><p class="intro">Les informations de votre compte, en un endroit.</p></header>
     <p id="profil-status" role="status">Chargement de votre profil…</p>
     <p id="profil-login" hidden><a href="/login">Se connecter</a></p>
     <dl id="profil-details" hidden>
@@ -60,9 +60,3 @@ import Navbar from '../../components/Navbar.astro';
     if (event.persisted) void chargerProfil(true);
   });
 </script>
-
-<style>
-  .profil-page { max-width: 900px; margin: 0 auto; padding: 2rem; }
-  dt { font-weight: 600; margin-top: 1rem; }
-  dd { margin: 0.25rem 0 0; overflow-wrap: anywhere; }
-</style>

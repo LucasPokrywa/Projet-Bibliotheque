@@ -1,22 +1,19 @@
+---
+import '../styles/global.css';
+---
 <!doctype html>
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<title>Bobolotheque</title>
-	</head>
-	<body>
-		<slot />
-	</body>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#284f40" />
+<meta name="description" content="Retrouvez vos livres, enrichissez votre bibliothèque et gardez une trace de vos lectures avec Bobolothèque." />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<title>Bobolothèque — Votre coin lecture</title>
+</head>
+<body>
+<a class="skip-link" href="#contenu">Aller au contenu</a>
+<slot />
+<footer class="site-footer"><span>Bobolothèque</span><span>Une place pour chaque livre.</span></footer>
+</body>
 </html>
-
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
-</style>

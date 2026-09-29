@@ -2,8 +2,233 @@
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
 ---
-
-
 <Layout>
-	<Navbar />
+<Navbar />
+<main id="contenu" class="home">
+<section class="hero" aria-labelledby="hero-title">
+<div><p class="eyebrow">Votre bibliothèque, tout simplement</p><h1 id="hero-title">Les belles histoires<br />méritent une <em>place.</em></h1><p class="intro">Rassemblez vos livres, retrouvez vos prochaines lectures et gardez le fil des pages déjà tournées.</p><div class="actions"><a class="button" href="/bibliotheque">Ma bibliothèque ↗</a><a class="button secondary" href="/livres">Explorer les livres</a></div><p class="small-note">Un titre. Un auteur. Un nouveau chapitre.</p></div>
+<div class="illustration" aria-hidden="true"><div class="sun"></div><span class="star">✳</span><div class="book back"><span>AU FIL<br />DES PAGES</span><i>◯</i><small>COLLECTION PERSONNELLE</small></div><div class="book cover"><small>BOBOLOTHÈQUE</small><span>Encore<br />un<br /><em>chapitre.</em></span><i>✳</i><small>LE PLAISIR DE LIRE</small></div><div class="shelf"></div><span class="caption">Votre prochaine histoire est ici.</span></div>
+</section>
+<section class="features" aria-label="Une bibliothèque à votre image">
+<a href="/livres"><span class="number">01 / DÉCOUVRIR</span><h2>Trouvez votre livre ↗</h2><p>Un ISBN suffit pour retrouver un titre et enrichir le catalogue.</p></a>
+<a href="/bibliotheque"><span class="number">02 / RASSEMBLER</span><h2>Faites-lui une place ↗</h2><p>Gardez tous les livres de votre collection dans votre bibliothèque.</p></a>
+<a href="/bibliotheque"><span class="number">03 / SE SOUVENIR</span><h2>Gardez le fil ↗</h2><p>Marquez vos livres comme lus et retrouvez vos lectures en un regard.</p></a>
+</section>
+</main>
 </Layout>
+<style>
+.home {
+  padding-top:3rem;
+}
+.hero {
+  display:grid;
+  grid-template-columns:1.2fr 1fr;
+  align-items:center;
+  gap:3rem;
+  min-height:460px;
+  padding-bottom:3.5rem;
+}
+.hero h1 {
+  font-size:clamp(2.7rem,4.5vw,4.5rem);
+  line-height:1.08;
+}
+.hero h1 em {
+  color:var(--accent);
+}
+.hero .intro {
+  max-width:420px;
+  line-height:1.85;
+  margin-top:1.5rem;
+}
+.actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:.75rem;
+}
+.small-note {
+  font-size:.75rem;
+  color:var(--muted);
+  margin-top:1.2rem;
+}
+.illustration {
+  position:relative;
+  height:400px;
+  isolation:isolate;
+}
+.sun {
+  position:absolute;
+  width:320px;
+  height:320px;
+  border-radius:50% 50% 5% 5%;
+  background:#e8eadb;
+  left:50%;
+  top:25px;
+  transform:translateX(-50%);
+  z-index:-1;
+}
+.book {
+  position:absolute;
+  border-radius:3px 8px 8px 3px;
+  box-shadow:10px 12px 22px #263b3520,inset 7px 0 0 #ffffff12,inset 10px 0 1px #00000015;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  padding:1.8rem;
+}
+.cover {
+  background:#325444;
+  color:#f4edda;
+  width:185px;
+  height:275px;
+  left:46%;
+  top:80px;
+  transform:rotate(10deg);
+}
+.cover>span {
+  font-family:Georgia,serif;
+  font-size:2rem;
+  line-height:1.04;
+}
+.cover em {
+  color:#e0c49b;
+}
+.book small {
+  font-size:.43rem;
+  letter-spacing:.15em;
+}
+.book i {
+  font-style:normal;
+  font-size:2rem;
+  color:#ddc89d;
+}
+.back {
+  background:#bf744f;
+  color:#fff4df;
+  width:170px;
+  height:250px;
+  left:12%;
+  top:55px;
+  transform:rotate(-12deg);
+}
+.back>span {
+  font-family:Georgia,serif;
+  font-size:1.5rem;
+}
+.back i {
+  font-size:5rem;
+  line-height:1;
+  align-self:center;
+}
+.star {
+  position:absolute;
+  top:5px;
+  right:30px;
+  color:var(--accent);
+  font-size:2.4rem;
+}
+.shelf {
+  position:absolute;
+  bottom:39px;
+  left:4%;
+  width:92%;
+  height:1px;
+  background:#b8bfac;
+}
+.caption {
+  position:absolute;
+  bottom:0;
+  left:0;
+  width:100%;
+  text-align:center;
+  font-family:Georgia,serif;
+  font-style:italic;
+  font-size:.9rem;
+  color:var(--muted);
+}
+.features {
+  border-top:1px solid var(--line);
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  padding-top:2rem;
+  gap:2rem;
+}
+.features a {
+  text-decoration:none;
+  color:var(--ink);
+}
+.features a:hover h2 {
+  color:var(--accent);
+}
+.number {
+  font-size:.6rem;
+  letter-spacing:.14em;
+  color:var(--muted);
+}
+.features h2 {
+  font-size:1.4rem;
+  margin:1rem 0 .7rem;
+}
+.features p {
+  font-size:.85rem;
+  color:var(--muted);
+  max-width:275px;
+  margin:0;
+}
+@media(max-width:850px) {
+  .hero {
+    gap:1rem;
+  }
+  .cover {
+    left:40%;
+  }
+  .back {
+    left:2%;
+  }
+  .sun {
+    width:270px;
+    height:300px;
+  }
+}
+@media(max-width:650px) {
+  .hero {
+    grid-template-columns:1fr;
+    padding-bottom:2rem;
+  }
+  .illustration {
+    width:310px;
+    max-width:100%;
+    margin:auto;
+    height:360px;
+  }
+  .cover {
+    top:55px;
+  }
+  .back {
+    top:30px;
+  }
+  .shelf {
+    bottom:30px;
+  }
+  .features {
+    grid-template-columns:1fr;
+    gap:1.5rem;
+  }
+  .features a+a {
+    border-top:1px solid var(--line);
+    padding-top:1.5rem;
+  }
+  .features p {
+    max-width:none;
+  }
+}
+@media(max-width:360px) {
+  .illustration {
+    transform:scale(.85);
+    transform-origin:center;
+    width:100%;
+  }
+  .cover {
+    left:35%;
+  }
+}
+</style>

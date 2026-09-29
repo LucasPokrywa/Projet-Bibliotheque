@@ -1,0 +1,362 @@
+:root {
+  --paper:#f7f5ef;
+  --surface:#fffefa;
+  --ink:#253d35;
+  --muted:#68716a;
+  --line:#dedfd8;
+  --green:#284f40;
+  --accent:#b76442;
+  font-family:Arial,Helvetica,sans-serif;
+  color:var(--ink);
+  background:var(--paper);
+  font-synthesis:none;
+  color-scheme:light;
+}
+* {
+  box-sizing:border-box;
+}
+body {
+  margin:0;
+  line-height:1.6;
+}
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:radial-gradient(ellipse at 95% 0%,#e4e9df80,transparent 55%);
+  z-index:-1;
+}
+[hidden] {
+  display:none!important;
+}
+a {
+  color:var(--green);
+  text-underline-offset:4px;
+}
+a:hover {
+  color:var(--accent);
+}
+button,input {
+  font:inherit;
+}
+button,.button {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:46px;
+  padding:.7rem 1.2rem;
+  border:1px solid var(--green);
+  border-radius:8px;
+  background:var(--green);
+  color:#fffefa;
+  font-size:.9rem;
+  font-weight:600;
+  text-decoration:none;
+  cursor:pointer;
+  transition:background .15s,box-shadow .15s;
+}
+button:hover,.button:hover {
+  background:#193b2d;
+  color:white;
+  box-shadow:0 3px 10px #253d3515;
+}
+button:disabled {
+  opacity:.6;
+  cursor:default;
+}
+.button.secondary {
+  background:transparent;
+  color:var(--green);
+  border-color:#b9c3ba;
+}
+.button.secondary:hover {
+  background:#e8ede5;
+}
+input {
+  width:100%;
+  min-width:0;
+  min-height:48px;
+  padding:.75rem .9rem;
+  background:var(--surface);
+  color:var(--ink);
+  border:1px solid #c5cdc3;
+  border-radius:8px;
+}
+input::placeholder {
+  color:#7a8079;
+}
+label {
+  font-size:.85rem;
+  font-weight:600;
+}
+a:focus-visible,button:focus-visible,input:focus-visible {
+  outline:3px solid #b76442;
+  outline-offset:4px;
+}
+h1,h2,h3 {
+  font-family:Georgia,'Times New Roman',serif;
+  font-weight:400;
+  line-height:1.15;
+  letter-spacing:-.035em;
+}
+h1 {
+  font-size:clamp(2.5rem,5vw,4rem);
+  margin:0 0 1rem;
+}
+h2 {
+  font-size:1.9rem;
+  margin:0 0 1rem;
+}
+p {
+  margin:0 0 1rem;
+}
+.eyebrow {
+  font-size:.7rem;
+  font-weight:700;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:1rem;
+}
+.intro {
+  color:var(--muted);
+  max-width:600px;
+  margin-bottom:2rem;
+}
+.page-heading {
+  margin-bottom:2.5rem;
+}
+.page-heading .intro {
+  margin-bottom:1.5rem;
+}
+main {
+  width:min(1120px,100%);
+  margin:0 auto;
+  padding:4rem 2rem 5rem;
+  min-height:calc(100vh - 190px);
+}
+.site-footer {
+  max-width:1056px;
+  margin:auto;
+  padding:1.5rem 0;
+  border-top:1px solid var(--line);
+  display:flex;
+  justify-content:space-between;
+  gap:1rem;
+  color:var(--muted);
+  font-size:.8rem;
+}
+.site-footer span:first-child {
+  font-family:Georgia,serif;
+  color:var(--ink);
+  font-size:1rem;
+}
+.skip-link {
+  position:absolute;
+  top:-100px;
+  left:1rem;
+  z-index:10;
+  background:var(--surface);
+  padding:1rem;
+}
+.skip-link:focus {
+  top:1rem;
+}
+.login-page,.register-page {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding-top:3rem;
+  padding-bottom:3rem;
+}
+.login-form,.register-form {
+  width:100%;
+  max-width:460px;
+  padding:2.5rem;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:16px;
+  box-shadow:0 15px 60px #253d3506;
+}
+.login-form h1,.register-form h1 {
+  font-size:2.5rem;
+}
+.login-form label,.register-form label {
+  display:block;
+  margin:1.1rem 0 .4rem;
+}
+.login-form button,.register-form button {
+  width:100%;
+  margin:1.4rem 0 1rem;
+}
+.login-form>p:last-child,.register-form>p:last-child {
+  font-size:.85rem;
+  text-align:center;
+  margin-bottom:0;
+}
+.error-message:not(:empty) {
+  color:#a52a21;
+  background:#fff0eb;
+  border-left:3px solid #b64131;
+  padding:.8rem;
+  margin-top:1rem;
+}
+.error-message:empty,[role=status]:empty {
+  display:none;
+}
+[role=status]:not(:empty) {
+  font-size:.9rem;
+  color:var(--muted);
+  padding:1rem;
+  background:#ecefe7;
+  border-radius:8px;
+  margin-top:1rem;
+}
+#login-notice:not(:empty) {
+  color:var(--green);
+}
+.livres-page section {
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:2rem;
+  margin-bottom:2.5rem;
+}
+#recherche-livre {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:.5rem 1rem;
+  max-width:650px;
+}
+#recherche-livre label {
+  grid-column:1/-1;
+}
+#ajout-champs {
+  border:1px solid var(--line);
+  border-radius:10px;
+  margin:1.5rem 0 0;
+  padding:1.5rem;
+}
+legend {
+  font-family:Georgia,serif;
+  font-size:1.2rem;
+  padding:0 .5rem;
+}
+dt {
+  font-size:.75rem;
+  font-weight:600;
+  color:var(--muted);
+  letter-spacing:.04em;
+  margin-top:1rem;
+}
+dd {
+  margin:.2rem 0 1rem;
+  overflow-wrap:anywhere;
+}
+#profil-details {
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:1rem 2rem;
+  max-width:650px;
+}
+#livres-liste,#bibliotheque-livres {
+  list-style:none;
+  margin:1rem 0;
+  padding:0;
+  overflow-wrap:anywhere;
+}
+#livres-liste li,#bibliotheque-livres li {
+  display:grid;
+  grid-template-columns:minmax(0,3fr) minmax(0,2fr) 14rem;
+  gap:.75rem 1.5rem;
+  align-items:center;
+  padding:1.4rem .5rem;
+}
+#bibliotheque-livres li {
+  grid-template-columns:minmax(0,3fr) minmax(0,2fr) 4.8rem 13rem;
+}
+#livres-liste li+li,#bibliotheque-livres li+li {
+  border-top:1px solid var(--line);
+}
+#livres-liste li>span:first-child,#bibliotheque-livres li>span:first-child {
+  font-family:Georgia,serif;
+  font-size:1.2rem;
+  line-height:1.4;
+}
+#livres-liste li>span:nth-child(2),#bibliotheque-livres li>span:nth-child(2) {
+  color:var(--muted);
+  font-size:.9rem;
+}
+#livres-liste button,#bibliotheque-livres button {
+  background:transparent;
+  color:var(--green);
+  border-color:#b9c3ba;
+  font-size:.8rem;
+  padding:.6rem .8rem;
+}
+#livres-liste button:hover,#bibliotheque-livres button:hover {
+  background:#e8ede5;
+}
+.lecture-etat {
+  justify-self:start;
+  border-radius:20px;
+  padding:.25rem .65rem;
+  background:#ebe8e0;
+  color:#625c48;
+  font-size:.75rem;
+  white-space:nowrap;
+}
+.lecture-etat[data-lu=true] {
+  background:#dceadd;
+  color:#265237;
+}
+li [role=status]:not(:empty) {
+  grid-column:1/-1;
+  margin:0;
+}
+@media(max-width:760px) {
+  main {
+    padding:2.5rem 1.25rem 3rem;
+  }
+  .site-footer {
+    margin:0 1.25rem;
+    flex-wrap:wrap;
+  }
+  .livres-page section {
+    padding:1.25rem;
+  }
+  #bibliotheque-livres li,#livres-liste li {
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:.6rem 1rem;
+  }
+  #bibliotheque-livres li>span:first-child,#livres-liste li>span:first-child {
+    grid-column:1/-1;
+  }
+  #bibliotheque-livres li>span:nth-child(2),#livres-liste li>span:nth-child(2) {
+    grid-column:1/-1;
+  }
+  #livres-liste button {
+    justify-self:start;
+    grid-column:1/-1;
+  }
+  #bibliotheque-livres button {
+    grid-column:2;
+  }
+  .login-form,.register-form {
+    padding:1.5rem;
+  }
+  #recherche-livre {
+    grid-template-columns:1fr;
+  }
+  #recherche-livre button {
+    margin-top:.4rem;
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  * {
+    transition:none!important;
+    scroll-behavior:auto!important;
+  }
+}

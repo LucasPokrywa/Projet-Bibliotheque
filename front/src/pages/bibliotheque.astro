@@ -5,8 +5,8 @@ import Navbar from '../components/Navbar.astro';
 
 <Layout>
 	<Navbar />
-	<main class="bibliotheque-page">
-		<h1>Ma bibliothèque</h1>
+	<main id="contenu" class="bibliotheque-page">
+		<header class="page-heading"><p class="eyebrow">Votre collection</p><h1>Ma bibliothèque</h1><p class="intro">Vos histoires préférées, celles à découvrir et celles qui restent.</p><a class="button secondary" href="/livres">Ajouter un livre <span aria-hidden="true">&nbsp;↗</span></a></header>
 		<p id="bibliotheque-status" role="status">Chargement de vos livres…</p>
 		<p id="bibliotheque-login" hidden><a href="/login">Se connecter</a></p>
 		<ul id="bibliotheque-livres" aria-label="Mes livres" hidden></ul>
@@ -125,66 +125,3 @@ import Navbar from '../components/Navbar.astro';
 		if (event.persisted) void chargerBibliotheque(true);
 	});
 </script>
-
-<style>
-	.bibliotheque-page {
-		max-width: 900px;
-		margin: 0 auto;
-		padding: 2rem;
-	}
-
-	#bibliotheque-livres :global(li + li) {
-		border-top: 1px solid #ddd;
-	}
-
-	#bibliotheque-livres :global(li) {
-		display: grid;
-		grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) 4.5rem 13rem;
-		align-items: center;
-		gap: 0.5rem 1.5rem;
-		min-width: 700px;
-		padding: 0.75rem 0;
-	}
-
-	#bibliotheque-livres :global(.lecture-etat) {
-		justify-self: start;
-		white-space: nowrap;
-		padding: 0.1rem 0.6rem;
-		border-radius: 1rem;
-		background: #eee;
-		color: #333;
-		font-size: 0.9rem;
-	}
-
-	#bibliotheque-livres :global(.lecture-etat[data-lu="true"]) {
-		background: #e0f2e5;
-		color: #215b32;
-	}
-
-	#bibliotheque-livres :global(button) {
-		width: 100%;
-		margin: 0;
-		padding: 0.4rem 0.75rem;
-		cursor: pointer;
-	}
-
-	#bibliotheque-livres :global(button:disabled) {
-		cursor: wait;
-	}
-
-	#bibliotheque-livres :global([role="status"]:not(:empty)) {
-		grid-column: 1 / -1;
-	}
-
-	#bibliotheque-livres :global([role="status"]:empty) {
-		display: none;
-	}
-
-	#bibliotheque-livres {
-		overflow-x: auto;
-		list-style: none;
-		padding: 0;
-		line-height: 1.8;
-		overflow-wrap: anywhere;
-	}
-</style>

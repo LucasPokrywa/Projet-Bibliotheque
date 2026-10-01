@@ -54,3 +54,6 @@ docker-compose.override.yml
 *.dump
 *.backup.tar
 *.apk
+
+ops/caddy/custom/*
+!ops/caddy/custom/README.md

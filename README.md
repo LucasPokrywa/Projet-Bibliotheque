@@ -216,6 +216,9 @@ et du frontend ne sont pas publiés directement en production ; PostgreSQL ne
 publie aucun port. Swagger est désactivé avec `NODE_ENV=production`.
 Voir la [procédure HTTPS](ops/HTTPS.md) pour les détails et les conflits de ports.
 
+Les configurations Caddy supplémentaires se placent dans `ops/caddy/custom/*.caddy`.
+Voir les [instructions de configuration personnalisée](ops/caddy/custom/README.md).
+
 ### GitHub Actions
 
 Le [workflow de déploiement](.github/workflows/deploy.yaml) se lance à chaque
